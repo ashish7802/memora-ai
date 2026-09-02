@@ -20,9 +20,12 @@ import {
   Terminal,
   Network,
   Kanban,
+  HardDrive,
+  Share2,
 } from 'lucide-react';
 import MemorySemanticGraph from '@/components/MemorySemanticGraph';
 import SwarmKanban from '@/components/SwarmKanban';
+import LocalAndPlatforms from '@/components/LocalAndPlatforms';
 
 interface ChatMessage {
   id: string;
@@ -55,7 +58,7 @@ interface SkillProposal {
 }
 
 export default function MemoraDashboard() {
-  const [activeTab, setActiveTab] = useState<'chat' | 'search' | 'add' | 'proposals' | 'learning' | 'swarm'>('chat');
+  const [activeTab, setActiveTab] = useState<'chat' | 'search' | 'add' | 'proposals' | 'learning' | 'swarm' | 'platforms'>('chat');
   const [sessionId, setSessionId] = useState('default');
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([
     {
@@ -336,6 +339,19 @@ export default function MemoraDashboard() {
             </span>
           </button>
           <button
+            onClick={() => setActiveTab('platforms')}
+            className={`pb-1 transition-all cursor-pointer flex items-center gap-1.5 ${
+              activeTab === 'platforms'
+                ? 'text-[#588157] border-b-2 border-[#588157]'
+                : 'hover:text-[#2D2D2A]'
+            }`}
+          >
+            <span>Local &amp; Platforms</span>
+            <span className="px-1.5 py-0.2 rounded-full text-[9px] font-mono font-bold bg-[#3D5A8022] text-[#3D5A80]">
+              Part 4
+            </span>
+          </button>
+          <button
             onClick={() => setActiveTab('add')}
             className={`pb-1 transition-all cursor-pointer ${
               activeTab === 'add'
@@ -417,6 +433,22 @@ export default function MemoraDashboard() {
             </div>
 
             <div className="p-3 bg-white border border-[#E6E2DE] rounded-xl shadow-xs flex items-center gap-3">
+              <div className="w-2.5 h-2.5 rounded-full bg-[#3D5A80] shrink-0"></div>
+              <div className="min-w-0">
+                <p className="text-xs font-mono font-medium text-[#2D2D2A] truncate">ollama.ts</p>
+                <p className="text-[10px] text-[#8A817C]">Local LLM &amp; Offline Weights</p>
+              </div>
+            </div>
+
+            <div className="p-3 bg-white border border-[#E6E2DE] rounded-xl shadow-xs flex items-center gap-3">
+              <div className="w-2.5 h-2.5 rounded-full bg-[#2A9D8F] shrink-0"></div>
+              <div className="min-w-0">
+                <p className="text-xs font-mono font-medium text-[#2D2D2A] truncate">platforms.ts</p>
+                <p className="text-[10px] text-[#8A817C]">Telegram / Discord / Slack</p>
+              </div>
+            </div>
+
+            <div className="p-3 bg-white border border-[#E6E2DE] rounded-xl shadow-xs flex items-center gap-3">
               <div className="w-2.5 h-2.5 rounded-full bg-[#D4A373] shrink-0"></div>
               <div className="min-w-0">
                 <p className="text-xs font-mono font-medium text-[#2D2D2A] truncate">learning.ts</p>
@@ -488,7 +520,7 @@ export default function MemoraDashboard() {
         {/* Center Column: Active Console Pane */}
         <section
           className={`${
-            activeTab === 'swarm' ? 'col-span-9' : 'col-span-6'
+            activeTab === 'swarm' || activeTab === 'platforms' ? 'col-span-9' : 'col-span-6'
           } flex flex-col gap-4 h-full overflow-hidden transition-all duration-300`}
         >
           <div className="bg-white rounded-3xl border border-[#E6E2DE] shadow-xs p-5 flex flex-col overflow-hidden flex-1">
@@ -529,6 +561,17 @@ export default function MemoraDashboard() {
                 >
                   <Kanban className="w-3.5 h-3.5" />
                   <span>Multi-Agent Swarm</span>
+                </button>
+                <button
+                  onClick={() => setActiveTab('platforms')}
+                  className={`px-3.5 py-1.5 rounded-full text-xs font-semibold transition-all cursor-pointer flex items-center gap-1.5 ${
+                    activeTab === 'platforms'
+                      ? 'bg-[#3D5A80] text-white shadow-xs'
+                      : 'text-[#8A817C] bg-[#FDFBF7] border border-[#E6E2DE] hover:bg-white'
+                  }`}
+                >
+                  <HardDrive className="w-3.5 h-3.5" />
+                  <span>Local &amp; Platforms</span>
                 </button>
                 <button
                   onClick={() => setActiveTab('add')}
@@ -680,6 +723,19 @@ export default function MemoraDashboard() {
               </div>
             )}
 
+            {/* TAB CONTENT: LOCAL-FIRST & MULTI-PLATFORM GATEWAY (PART 4) */}
+            {activeTab === 'platforms' && (
+              <div id="local-and-platforms-panel" className="flex-1 flex flex-col overflow-hidden -mx-5 -mb-5 mt-3 border-t border-[#E6E2DE]">
+                <LocalAndPlatforms
+                  sessionId={sessionId}
+                  onSendToChat={(text) => {
+                    setActiveTab('chat');
+                    setChatInput(text);
+                  }}
+                />
+              </div>
+            )}
+
             {/* TAB CONTENT: INJECT MEMORY */}
             {activeTab === 'add' && (
               <div className="flex-1 flex flex-col overflow-y-auto pt-4 space-y-4">
@@ -820,7 +876,7 @@ export default function MemoraDashboard() {
         {/* Right Column: Database Stats & Skill Registry */}
         <section
           className={`${
-            activeTab === 'swarm' ? 'hidden' : 'col-span-3'
+            activeTab === 'swarm' || activeTab === 'platforms' ? 'hidden' : 'col-span-3'
           } flex flex-col gap-4 overflow-y-auto`}
         >
           {/* Stats Box */}

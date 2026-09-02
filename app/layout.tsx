@@ -4,18 +4,18 @@ import './globals.css'; // Global styles
 export const metadata: Metadata = {
   title: 'Memora - Agent Memory & Skills Platform',
   description:
-    'Agent Memory & Skills Platform - Foundation & Data Layer with self-improving Experience Logger, Skill Generator, Multi-Agent Swarm with Hermes Kanban Orchestrator, D3 semantic graphs, and dynamic plugin architecture.',
+    'Agent Memory & Skills Platform - Foundation & Data Layer with self-improving Experience Logger, Skill Generator, Multi-Agent Swarm with Hermes Kanban Orchestrator, Local-First Ollama Hub, and Telegram/Discord/Slack gateways.',
   openGraph: {
     title: 'Memora - Agent Memory & Skills Platform',
     description:
-      'Agent Memory & Skills Platform - Foundation & Data Layer with self-improving Experience Logger, Skill Generator, Multi-Agent Swarm with Hermes Kanban Orchestrator, D3 semantic graphs, and dynamic plugin architecture.',
+      'Agent Memory & Skills Platform - Foundation & Data Layer with self-improving Experience Logger, Skill Generator, Multi-Agent Swarm with Hermes Kanban Orchestrator, Local-First Ollama Hub, and Telegram/Discord/Slack gateways.',
     type: 'website',
   },
   twitter: {
     card: 'summary_large_image',
     title: 'Memora - Agent Memory & Skills Platform',
     description:
-      'Agent Memory & Skills Platform - Foundation & Data Layer with self-improving Experience Logger, Skill Generator, Multi-Agent Swarm with Hermes Kanban Orchestrator, D3 semantic graphs, and dynamic plugin architecture.',
+      'Agent Memory & Skills Platform - Foundation & Data Layer with self-improving Experience Logger, Skill Generator, Multi-Agent Swarm with Hermes Kanban Orchestrator, Local-First Ollama Hub, and Telegram/Discord/Slack gateways.',
   },
 };
 

@@ -1,6 +1,7 @@
 import { GoogleGenAI } from '@google/genai';
 import { memoryStore } from './store';
 import { builtInSkills } from './skills';
+import { ollamaManager } from './ollama';
 
 export interface ChatResult {
   response: string;
@@ -29,9 +30,27 @@ export async function runOrchestrator(
           .join('\n')
       : 'No prior memories found for this query.';
 
-  // 2. Check if GEMINI_API_KEY is available
+  const ollamaConfig = ollamaManager.getConfig();
+  const preferLocal = ollamaConfig.mode === 'local' || ollamaConfig.mode === 'airgapped';
+
+  // 2A. If Local-first or Air-gapped mode is enabled, attempt Ollama first
+  if (preferLocal) {
+    try {
+      const localRes = await ollamaManager.generate(
+        query,
+        `You are Memora, an intelligent local AI agent operating with zero remote telemetry. Relevant retrieved memories:\n${memoryContext}`
+      );
+      if (localRes.response) {
+        finalResponse = localRes.response;
+      }
+    } catch {
+      // Fallback
+    }
+  }
+
+  // 2B. Try Cloud Gemini API (if not in airgapped mode and no response yet)
   const apiKey = process.env.GEMINI_API_KEY;
-  if (apiKey) {
+  if (!finalResponse && apiKey && ollamaConfig.mode !== 'airgapped') {
     try {
       const ai = new GoogleGenAI({ apiKey });
 
@@ -82,7 +101,22 @@ Please formulate a concise, polished response to the user incorporating this res
         finalResponse = parsed.response;
       }
     } catch {
-      // Fallback to deterministic agent if API fails or parsing errors
+      // Graceful fallback to local engine or deterministic skill match
+    }
+  }
+
+  // 2C. If Cloud model failed or quota exhausted, attempt Local Ollama fallback
+  if (!finalResponse && !preferLocal) {
+    try {
+      const localFallback = await ollamaManager.generate(
+        query,
+        `You are Memora's local offline engine. Answer directly and concisely based on retrieved memories:\n${memoryContext}`
+      );
+      if (localFallback.response) {
+        finalResponse = localFallback.response;
+      }
+    } catch {
+      // continue to deterministic match
     }
   }
 
