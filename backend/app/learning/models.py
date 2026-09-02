@@ -6,7 +6,7 @@ from sqlalchemy import Boolean, Column, DateTime, Float, ForeignKey, Index, Inte
 from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.orm import declarative_base
 
-from app.models.memory import Base if False else declarative_base()
+from app.memory.models import Base
 
 
 class ExperienceLog(Base):

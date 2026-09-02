@@ -6,7 +6,7 @@ from sqlalchemy import Boolean, Column, DateTime, ForeignKey, Index, String, Tex
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 
-from app.models.memory import Base
+from app.memory.models import Base
 
 
 class Tenant(Base):

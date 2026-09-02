@@ -100,6 +100,19 @@ class MemoryResponse(BaseModel):
     last_accessed_at: datetime
 
 
+class MemoryDeleteResponse(BaseModel):
+    status: str = "success"
+    deleted_id: uuid.UUID
+    message: str
+
+
+class MemoryPruneResponse(BaseModel):
+    status: str = "success"
+    pruned_count: int
+    message: str
+
+
 class MemoryBatchResponse(BaseModel):
-    inserted_count: int
-    memory_ids: List[uuid.UUID]
+    status: str = "success"
+    count: int
+    data: List[MemoryResponse]
