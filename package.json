@@ -3,11 +3,10 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "uvicorn main:app --host 0.0.0.0 --port 3000 --reload",
-    "build": "echo 'No build step required for FastAPI'",
-    "start": "uvicorn main:app --host 0.0.0.0 --port 3000",
-    "lint": "echo 'No lint step required for FastAPI'",
-    "clean": "echo 'No clean step required'"
+    "dev": "next dev -p 3000 -H 0.0.0.0",
+    "build": "next build",
+    "start": "next start -p 3000 -H 0.0.0.0",
+    "lint": "next lint"
   },
   "dependencies": {
     "@google/genai": "^2.4.0",
@@ -15,6 +14,7 @@
     "autoprefixer": "^10.4.21",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
+    "d3": "^7.9.0",
     "lucide-react": "^0.553.0",
     "motion": "^12.23.24",
     "next": "^15.4.9",
@@ -26,6 +26,7 @@
   "devDependencies": {
     "@tailwindcss/postcss": "4.1.11",
     "@tailwindcss/typography": "^0.5.19",
+    "@types/d3": "^7.4.3",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",

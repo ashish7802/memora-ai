@@ -1,6 +1,6 @@
 {
   "name": "Memora",
-  "description": "Agent Memory & Skills Platform - Foundation & Data Layer with self-improving Experience Logger, Skill Generator, Auto-Integrator, User Model Builder, ChromaDB, and plugin architecture.",
+  "description": "Agent Memory & Skills Platform - Foundation & Data Layer with self-improving Experience Logger, Skill Generator, Multi-Agent Swarm with Hermes Kanban Orchestrator, D3 semantic graphs, and dynamic plugin architecture.",
   "requestFramePermissions": [],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }

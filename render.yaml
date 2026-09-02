@@ -1,8 +1,0 @@
-services:
-  - type: web
-    name: memora
-    runtime: docker
-    plan: free
-    envVars:
-      - key: GEMINI_API_KEY
-        sync: false
