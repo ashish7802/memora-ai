@@ -1,5 +1,5 @@
 import os
-import time
+import asyncio
 from fastapi import FastAPI, Query, HTTPException
 from fastapi.responses import HTMLResponse
 from fastapi.middleware.cors import CORSMiddleware
@@ -35,61 +35,87 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Initialize Vector Store
-vector_store = VectorStore()
+# Global variables (Initially None, initialized in background)
+vector_store = None
+skill_registry = None
+experience_store = None
+skill_generator = None
+skill_enhancer = None
+auto_integrator = None
+user_model_builder = None
+rag_pipeline = None
+orchestrator = None
+services_ready = False
 
-# Seed database with some initial memories if empty
-try:
-    existing_items = vector_store.collection.get()
-    if not existing_items or not existing_items.get("ids"):
-        vector_store.add_memory(
-            "User preference: Preferred morning beverage is fresh ginger tea with raw honey.",
-            {"source": "Chat_History_092", "category": "Preference"}
-        )
-        vector_store.add_memory(
-            "Project Context: Memora Foundation Stack runs with FastAPI backend and ChromaDB persistence.",
-            {"source": "Documentation_Upload", "category": "Project"}
-        )
-        vector_store.add_memory(
-            "Core Strategy: Always prioritize clean vector index lookups and semantic recall.",
-            {"source": "System_Directive", "category": "Strategy"}
-        )
-except Exception as e:
-    print(f"Warning: Seeding initial memories failed: {e}")
+async def initialize_services():
+    """Heavy initialization function called as a background task"""
+    global vector_store, skill_registry, experience_store, skill_generator
+    global skill_enhancer, auto_integrator, user_model_builder, rag_pipeline
+    global orchestrator, services_ready
 
-# Initialize Registries, Skills, RAG, ExperienceStore and Orchestrator
-skill_registry = SkillRegistry()
-register_all_skills(skill_registry, vector_store=vector_store)
+    # 1. Initialize Vector Store
+    vector_store = VectorStore()
 
-experience_store = ExperienceStore()
-skill_generator = SkillGenerator(experience_store=experience_store)
-skill_enhancer = SkillRegistryEnhancer(skill_registry=skill_registry, generator=skill_generator)
-auto_integrator = AutoIntegrator(skill_generator=skill_generator, skill_enhancer=skill_enhancer, threshold=0.8)
-user_model_builder = UserModelBuilder(experience_store=experience_store)
-rag_pipeline = RAGPipeline(vector_store=vector_store)
-orchestrator = Orchestrator(registry=skill_registry, vector_store=vector_store, experience_store=experience_store)
+    # 2. Seed database with some initial memories if empty
+    try:
+        existing_items = vector_store.collection.get()
+        if not existing_items or not existing_items.get("ids"):
+            vector_store.add_memory(
+                "User preference: Preferred morning beverage is fresh ginger tea with raw honey.",
+                {"source": "Chat_History_092", "category": "Preference"}
+            )
+            vector_store.add_memory(
+                "Project Context: Memora Foundation Stack runs with FastAPI backend and ChromaDB persistence.",
+                {"source": "Documentation_Upload", "category": "Project"}
+            )
+            vector_store.add_memory(
+                "Core Strategy: Always prioritize clean vector index lookups and semantic recall.",
+                {"source": "System_Directive", "category": "Strategy"}
+            )
+    except Exception as e:
+        print(f"Warning: Seeding initial memories failed: {e}")
 
+    # 3. Initialize Registries, Skills, RAG, ExperienceStore and Orchestrator
+    skill_registry = SkillRegistry()
+    register_all_skills(skill_registry, vector_store=vector_store)
+
+    experience_store = ExperienceStore()
+    skill_generator = SkillGenerator(experience_store=experience_store)
+    skill_enhancer = SkillRegistryEnhancer(skill_registry=skill_registry, generator=skill_generator)
+    auto_integrator = AutoIntegrator(skill_generator=skill_generator, skill_enhancer=skill_enhancer, threshold=0.8)
+    user_model_builder = UserModelBuilder(experience_store=experience_store)
+    rag_pipeline = RAGPipeline(vector_store=vector_store)
+    orchestrator = Orchestrator(registry=skill_registry, vector_store=vector_store, experience_store=experience_store)
+
+    services_ready = True
+    print("Services initialized successfully!")
 
 @app.on_event("startup")
-def startup_event():
-    auto_integrator.auto_integrate_loop(interval_seconds=60)
+async def startup_event():
+    # Start initialization in background so server doesn't timeout
+    asyncio.create_task(initialize_services())
 
-
+def require_services():
+    """Helper function to check if services are ready"""
+    if not services_ready:
+        raise HTTPException(status_code=503, detail="Service is starting up. Please wait a few seconds.")
+    return vector_store, orchestrator, experience_store, skill_generator, skill_enhancer, auto_integrator, user_model_builder
 
 class AddMemoryPayload(BaseModel):
     text: str
     metadata: Optional[Dict[str, Any]] = None
 
-
 class ChatPayload(BaseModel):
     message: str
     session_id: Optional[str] = "default"
 
-
 @app.get("/", response_class=HTMLResponse)
 def get_dashboard():
     try:
-        count = vector_store.collection.count()
+        if services_ready:
+            count = vector_store.collection.count()
+        else:
+            count = 0
     except Exception:
         count = 0
 
@@ -189,9 +215,9 @@ def get_dashboard():
         <div class="mt-4 p-5 bg-[#5881571A] rounded-2xl border border-[#58815733]">
           <h3 class="text-xs uppercase tracking-wider font-bold text-[#588157] mb-2">LangGraph & Gemini Status</h3>
           <p class="text-xs text-[#588157CC] leading-relaxed font-mono text-[11px]">
-            Orchestrator: Active<br>
+            Orchestrator: Loading...<br>
             Skills Registered: 4<br>
-            Loop: Fully Operational
+            Loop: Operational
           </p>
         </div>
       </section>
@@ -618,9 +644,10 @@ def get_dashboard():
 @app.post("/chat")
 @app.post("/api/chat")
 def chat_endpoint(payload: ChatPayload):
+    vs, orch, es, sg, se, ai, umb = require_services()
     try:
         session_id = payload.session_id or "default"
-        response_text = orchestrator.run(payload.message, session_id=session_id)
+        response_text = orch.run(payload.message, session_id=session_id)
         return {"response": response_text, "session_id": session_id}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
@@ -628,9 +655,10 @@ def chat_endpoint(payload: ChatPayload):
 
 @app.get("/memory/{session_id}")
 def get_memories_by_session(session_id: str):
+    vs, orch, es, sg, se, ai, umb = require_services()
     try:
         # Fetch matching items from the collections with the target session_id
-        results = vector_store.collection.get(
+        results = vs.collection.get(
             where={"session_id": session_id},
             limit=10
         )
@@ -654,8 +682,9 @@ def get_memories_by_session(session_id: str):
 
 @app.post("/api/memory")
 def add_memory_endpoint(payload: AddMemoryPayload):
+    vs, orch, es, sg, se, ai, umb = require_services()
     try:
-        memory_id = vector_store.add_memory(payload.text, payload.metadata)
+        memory_id = vs.add_memory(payload.text, payload.metadata)
         return {"id": memory_id, "status": "success"}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
@@ -663,8 +692,9 @@ def add_memory_endpoint(payload: AddMemoryPayload):
 
 @app.get("/api/memory/search")
 def search_memory_endpoint(q: str = Query(..., description="Semantic search query")):
+    vs, orch, es, sg, se, ai, umb = require_services()
     try:
-        results = vector_store.search_memory(q)
+        results = vs.search_memory(q)
         return results
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
@@ -673,7 +703,10 @@ def search_memory_endpoint(q: str = Query(..., description="Semantic search quer
 @app.get("/api/stats")
 def get_stats_endpoint():
     try:
-        return {"count": vector_store.collection.count()}
+        if services_ready:
+            return {"count": vector_store.collection.count()}
+        else:
+            return {"count": 0}
     except Exception as e:
         return {"count": 0, "error": str(e)}
 
@@ -689,8 +722,9 @@ def test_embed(text: str = Query(..., description="Text to generate embedding fo
 
 @app.get("/experiences/{session_id}")
 def get_experiences_by_session_endpoint(session_id: str):
+    vs, orch, es, sg, se, ai, umb = require_services()
     try:
-        exps = experience_store.get_by_session(session_id)
+        exps = es.get_by_session(session_id)
         return {
             "session_id": session_id,
             "experiences": [experience_to_dict(exp) for exp in exps],
@@ -702,8 +736,9 @@ def get_experiences_by_session_endpoint(session_id: str):
 
 @app.get("/experiences")
 def get_recent_experiences_endpoint(limit: int = 100):
+    vs, orch, es, sg, se, ai, umb = require_services()
     try:
-        exps = experience_store.get_recent(limit=limit)
+        exps = es.get_recent(limit=limit)
         return {
             "experiences": [experience_to_dict(exp) for exp in exps],
             "count": len(exps)
@@ -718,9 +753,10 @@ class AnalyzeSkillsPayload(BaseModel):
 
 @app.post("/api/skills/analyze")
 def analyze_skills_endpoint(payload: Optional[AnalyzeSkillsPayload] = None, session_id: Optional[str] = None):
+    vs, orch, es, sg, se, ai, umb = require_services()
     try:
         target_session = (payload.session_id if payload and payload.session_id else None) or session_id
-        proposals = skill_generator.analyze_experiences(session_id=target_session)
+        proposals = sg.analyze_experiences(session_id=target_session)
         return {
             "status": "success",
             "message": f"Analysis complete. Generated/updated {len(proposals)} proposals.",
@@ -736,8 +772,9 @@ def analyze_skills_endpoint(payload: Optional[AnalyzeSkillsPayload] = None, sess
 
 @app.get("/api/skills/proposals")
 def get_skill_proposals_endpoint(status: Optional[str] = None):
+    vs, orch, es, sg, se, ai, umb = require_services()
     try:
-        proposals = skill_generator.get_proposals(status=status)
+        proposals = sg.get_proposals(status=status)
         return {
             "status": "success",
             "count": len(proposals),
@@ -752,12 +789,13 @@ def get_skill_proposals_endpoint(status: Optional[str] = None):
 
 @app.post("/api/skills/integrate/{proposal_name}")
 def integrate_skill_endpoint(proposal_name: str):
+    vs, orch, es, sg, se, ai, umb = require_services()
     try:
-        proposal = skill_generator.get_proposal(proposal_name)
+        proposal = sg.get_proposal(proposal_name)
         if not proposal:
             raise HTTPException(status_code=404, detail=f"Proposal '{proposal_name}' not found.")
 
-        success = skill_enhancer.integrate_proposal(proposal)
+        success = se.integrate_proposal(proposal)
         if not success:
             raise HTTPException(status_code=500, detail=f"Failed to integrate skill '{proposal_name}'.")
 
@@ -775,8 +813,9 @@ def integrate_skill_endpoint(proposal_name: str):
 
 @app.post("/api/skills/auto-integrate")
 def auto_integrate_endpoint():
+    vs, orch, es, sg, se, ai, umb = require_services()
     try:
-        integrated = auto_integrator.check_and_integrate()
+        integrated = ai.check_and_integrate()
         return {
             "status": "success",
             "message": f"Auto-integration check completed. {len(integrated)} skills integrated.",
@@ -787,15 +826,15 @@ def auto_integrate_endpoint():
         raise HTTPException(status_code=500, detail=str(e))
 
 
-
 class AnalyzeUserPayload(BaseModel):
     session_id: Optional[str] = None
 
 
 @app.get("/api/users/{session_id}/model")
 def get_user_model_endpoint(session_id: str):
+    vs, orch, es, sg, se, ai, umb = require_services()
     try:
-        model = user_model_builder.build_from_experiences(session_id)
+        model = umb.build_from_experiences(session_id)
         return {
             "status": "success",
             "session_id": session_id,
@@ -807,17 +846,18 @@ def get_user_model_endpoint(session_id: str):
 
 @app.post("/api/users/analyze")
 def analyze_users_endpoint(payload: Optional[AnalyzeUserPayload] = None, session_id: Optional[str] = None):
+    vs, orch, es, sg, se, ai, umb = require_services()
     try:
         target_session = (payload.session_id if payload and payload.session_id else None) or session_id
         if target_session:
-            model = user_model_builder.build_from_experiences(target_session)
+            model = umb.build_from_experiences(target_session)
             return {
                 "status": "success",
                 "message": f"User model analyzed and built for session '{target_session}'.",
                 "user_models": [user_model_to_dict(model)]
             }
         else:
-            models = user_model_builder.build_all_users()
+            models = umb.build_all_users()
             return {
                 "status": "success",
                 "message": f"User models analyzed and updated for {len(models)} sessions.",
