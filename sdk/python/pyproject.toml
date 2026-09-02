@@ -1,0 +1,70 @@
+[build-system]
+requires = ["hatchling>=1.25.0"]
+build-backend = "hatchling.build"
+
+[project]
+name = "memora"
+version = "0.1.0"
+description = "Sovereign cognitive vector memory & autonomous multi-agent tool framework for Python"
+readme = "README.md"
+requires-python = ">=3.9"
+license = { text = "MIT" }
+authors = [
+    { name = "Memora AI", email = "dev@memora.ai" }
+]
+keywords = [
+    "memory",
+    "vector-database",
+    "pgvector",
+    "llm",
+    "ai-agents",
+    "langchain",
+    "llamaindex",
+    "crewai",
+]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+]
+dependencies = [
+    "httpx>=0.25.0",
+    "pydantic>=2.0.0",
+]
+
+[project.optional-dependencies]
+langchain = [
+    "langchain-core>=0.1.0",
+]
+llamaindex = [
+    "llama-index-core>=0.10.0",
+]
+crewai = [
+    "crewai>=0.1.0",
+]
+all = [
+    "langchain-core>=0.1.0",
+    "llama-index-core>=0.10.0",
+    "crewai>=0.1.0",
+]
+dev = [
+    "pytest>=8.0.0",
+    "pytest-asyncio>=0.23.0",
+    "respx>=0.21.0",
+    "ruff>=0.4.0",
+    "mypy>=1.10.0",
+]
+
+[project.urls]
+Homepage = "https://github.com/memora-ai/memora"
+Documentation = "https://docs.memora.ai"
+Repository = "https://github.com/memora-ai/memora"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/memora"]

@@ -1,0 +1,30 @@
+{
+  "name": "@memora/sdk",
+  "version": "0.1.0",
+  "description": "TypeScript & JavaScript client SDK for Memora Vector Memory Platform",
+  "main": "dist/index.js",
+  "module": "dist/index.mjs",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsup src/index.ts --format cjs,esm --dts",
+    "test": "vitest run"
+  },
+  "keywords": [
+    "memora",
+    "vector-memory",
+    "pgvector",
+    "ai-agents",
+    "langchain",
+    "llm-memory"
+  ],
+  "author": "Memora AI",
+  "license": "MIT",
+  "dependencies": {
+    "axios": "^1.7.9"
+  },
+  "devDependencies": {
+    "tsup": "^8.3.5",
+    "typescript": "^5.7.3",
+    "vitest": "^2.1.8"
+  }
+}
