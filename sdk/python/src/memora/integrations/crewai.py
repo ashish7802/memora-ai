@@ -1,6 +1,6 @@
 from typing import Any, Dict, Optional, Type
 from pydantic import BaseModel, Field
-from memora.client import Memora
+from memora.client import MemoraClient
 
 try:
     from crewai.tools import BaseTool
@@ -21,8 +21,8 @@ class MemoraRememberSchema(BaseModel):
     importance: float = Field(default=1.0, description="Priority weight from 0.0 to 5.0")
 
 
-class MemoraCrewAITool(BaseTool):
-    """Tool for CrewAI agents to read and write to Memora cognitive memory."""
+class MemoraTool(BaseTool):
+    """CrewAI BaseTool subclass for reading and writing to Memora cognitive memory."""
 
     name: str = "memora_memory"
     description: str = (
@@ -36,7 +36,7 @@ class MemoraCrewAITool(BaseTool):
     cluster: str = "agent_knowledge"
     base_url: str = "http://localhost:8000"
     api_key: Optional[str] = None
-    _client: Optional[Memora] = None
+    _client: Optional[MemoraClient] = None
 
     def __init__(
         self,
@@ -53,14 +53,14 @@ class MemoraCrewAITool(BaseTool):
         self.cluster = cluster
         self.base_url = base_url
         self.api_key = api_key
-        self._client = Memora(base_url=base_url, api_key=api_key)
+        self._client = MemoraClient(base_url=base_url, api_key=api_key)
 
     def _run(self, query: str, top_k: int = 3) -> str:
         """Search memory for relevant facts."""
         if not self._client:
-            self._client = Memora(base_url=self.base_url, api_key=self.api_key)
+            self._client = MemoraClient(base_url=self.base_url, api_key=self.api_key)
 
-        results = self._client.search(
+        results = self._client.recall(
             query=query,
             session_id=self.session_id,
             cluster=self.cluster,
@@ -75,9 +75,9 @@ class MemoraCrewAITool(BaseTool):
     def remember(self, text: str, importance: float = 1.0) -> str:
         """Helper to let agent store a memory explicitly."""
         if not self._client:
-            self._client = Memora(base_url=self.base_url, api_key=self.api_key)
+            self._client = MemoraClient(base_url=self.base_url, api_key=self.api_key)
 
-        res = self._client.add(
+        res = self._client.remember(
             text=text,
             session_id=self.session_id,
             agent_id=self.agent_id,
@@ -85,3 +85,7 @@ class MemoraCrewAITool(BaseTool):
             importance=importance,
         )
         return f"Memory stored with ID: {res.id}"
+
+
+# Alias for backwards compatibility
+MemoraCrewAITool = MemoraTool

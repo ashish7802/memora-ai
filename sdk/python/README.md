@@ -28,45 +28,33 @@ pip install "memora[all]"
 
 ## Quickstart
 
-### 1. Basic Memory Operations (Sync)
-
 ```python
-from memora import Memora
+from memora import MemoraClient
 
-# Initialize client
-client = Memora(base_url="http://localhost:8000")
+# Initialize client with sovereign API key
+client = MemoraClient(api_key="mm_...", base_url="http://localhost:8000")
 
-# 1. Add memory
-memory = client.add(
-    text="User prefers PostgreSQL 17 with pgvector for vector search",
-    session_id="user_123",
-    cluster="technical_preferences",
-    importance=2.0,
-    metadata={"verified": True}
-)
-print(f"Stored Memory ID: {memory.id}")
+# 1. Remember: Store a memory
+client.remember("User prefers Python async and pgvector", session_id="user_123")
 
-# 2. Semantic Search
-results = client.search(
-    query="What database does the user prefer?",
-    session_id="user_123",
-    top_k=3
-)
+# 2. Recall: Semantic vector search
+results = client.recall("Python preferences", session_id="user_123")
+for mem in results:
+    print(f"- {mem.text} (similarity: {mem.similarity_score})")
 
-for item in results:
-    print(f"[{item.cluster}] {item.text} (similarity: {item.similarity_score:.2f})")
-
-# 3. Delete memory
-client.delete(id=memory.id)
+# 3. Forget: Delete a memory
+client.forget(id=results[0].id)
 ```
 
-### 2. High-Level Memory Manager (Session-Scoped)
+---
+
+## High-Level Memory Manager (Session-Scoped)
 
 ```python
 from memora import MemoryManager
 
-# Scoped to a specific conversation or user
-mem = MemoryManager(session_id="session_chat_42", base_url="http://localhost:8000")
+# Scoped to a specific user or multi-agent conversation
+mem = MemoryManager(session_id="session_chat_42", api_key="mm_...", base_url="http://localhost:8000")
 
 # Remembers automatically into 'session_chat_42'
 mem.remember("User ordered coffee with oat milk at 9:00 AM", cluster="orders")
@@ -77,34 +65,20 @@ for item in past_orders:
     print(item.text)
 ```
 
-### 3. Async Client (`asyncio`)
-
-```python
-import asyncio
-from memora import AsyncMemora
-
-async def main():
-    async with AsyncMemora(base_url="http://localhost:8000") as client:
-        memory = await client.add("Deployment scheduled for Friday at 5pm UTC")
-        results = await client.search("When is the deployment?")
-        print(results[0].text)
-
-asyncio.run(main())
-```
-
 ---
 
 ## Framework Integrations
 
-### LangChain
+### LangChain (`MemoraMemory`)
 
 ```python
 from langchain.chains import ConversationChain
 from langchain_openai import ChatOpenAI
-from memora.integrations.langchain import MemoraLangChainMemory
+from memora.integrations.langchain import MemoraMemory
 
-memory = MemoraLangChainMemory(
+memory = MemoraMemory(
     session_id="langchain_user_01",
+    api_key="mm_...",
     base_url="http://localhost:8000"
 )
 
@@ -117,7 +91,7 @@ conversation = ConversationChain(
 conversation.predict(input="My favorite programming language is Rust.")
 ```
 
-### LlamaIndex
+### LlamaIndex (`MemoraVectorStore`)
 
 ```python
 from llama_index.core import VectorStoreIndex, StorageContext
@@ -125,22 +99,21 @@ from memora.integrations.llamaindex import MemoraVectorStore
 
 vector_store = MemoraVectorStore(
     session_id="llamaindex_docs",
+    api_key="mm_...",
     base_url="http://localhost:8000"
 )
 storage_context = StorageContext.from_defaults(vector_store=vector_store)
-
-# Now build or query index
-# index = VectorStoreIndex.from_documents(documents, storage_context=storage_context)
 ```
 
-### CrewAI
+### CrewAI (`MemoraTool`)
 
 ```python
 from crewai import Agent, Task, Crew
-from memora.integrations.crewai import MemoraCrewAITool
+from memora.integrations.crewai import MemoraTool
 
-memory_tool = MemoraCrewAITool(
+memory_tool = MemoraTool(
     session_id="crew_research_project",
+    api_key="mm_...",
     base_url="http://localhost:8000"
 )
 

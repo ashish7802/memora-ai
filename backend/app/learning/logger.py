@@ -22,10 +22,12 @@ class ExperienceLogger:
         tool_result: Optional[Dict[str, Any]] = None,
         success: bool = True,
         latency_ms: float = 0.0,
+        tenant_id: Optional[uuid.UUID] = None,
     ) -> ExperienceLog:
         """Persist a live interaction turn into PostgreSQL."""
         log_entry = ExperienceLog(
             id=uuid.uuid4(),
+            tenant_id=tenant_id,
             session_id=session_id or "default",
             user_query=user_query,
             agent_response=agent_response,

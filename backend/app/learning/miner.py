@@ -78,9 +78,12 @@ class PatternMiner:
         session_id: Optional[str] = None,
         min_frequency: int = 1,
         lookback_limit: int = 100,
+        tenant_id: Optional[uuid.UUID] = None,
     ) -> List[PatternCluster]:
         """Runs the pattern mining pipeline over recent PostgreSQL experience logs."""
         stmt = select(ExperienceLog)
+        if tenant_id:
+            stmt = stmt.where(ExperienceLog.tenant_id == tenant_id)
         if session_id:
             stmt = stmt.where(ExperienceLog.session_id == session_id)
         
@@ -101,6 +104,7 @@ class PatternMiner:
 
             cluster_entry = PatternCluster(
                 id=uuid.uuid4(),
+                tenant_id=tenant_id,
                 session_id=session_id,
                 title=f"Intent Pattern: {gap['category'].replace('_', ' ').title()}",
                 category=gap["category"],
@@ -120,12 +124,13 @@ class PatternMiner:
 
         return persisted_clusters
 
-    async def generate_skill_proposal(self, pattern: PatternCluster) -> SkillProposal:
+    async def generate_skill_proposal(self, pattern: PatternCluster, tenant_id: Optional[uuid.UUID] = None) -> SkillProposal:
         """Creates a formal skill proposal based on a detected pattern cluster."""
         tool_name = pattern.suggested_tool_name or f"skill_{pattern.category}"
         
         proposal = SkillProposal(
             id=uuid.uuid4(),
+            tenant_id=tenant_id or pattern.tenant_id,
             cluster_id=pattern.id,
             name=tool_name,
             description=f"Automated skill to address {pattern.title}: {pattern.description}",

@@ -28,6 +28,7 @@ class SkillGenerator:
         pattern: PatternCluster,
         tool_name: Optional[str] = None,
         custom_instructions: Optional[str] = None,
+        tenant_id: Optional[uuid.UUID] = None,
     ) -> SkillProposal:
         """Synthesizes complete, executable Python tool code addressing the pattern gap."""
         resolved_name = (tool_name or pattern.suggested_tool_name or f"tool_{pattern.category}").lower().replace("-", "_").replace(" ", "_")
@@ -83,6 +84,7 @@ def run(params: Dict[str, Any]) -> Dict[str, Any]:
 
         proposal = SkillProposal(
             id=uuid.uuid4(),
+            tenant_id=tenant_id or pattern.tenant_id,
             cluster_id=pattern.id,
             name=resolved_name,
             description=f"Auto-generated tool to fulfill '{pattern.title}'. Addresses queries such as: {', '.join((pattern.sample_queries or [])[:2])}",

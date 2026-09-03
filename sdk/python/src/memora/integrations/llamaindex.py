@@ -1,5 +1,5 @@
 from typing import Any, Dict, List, Optional
-from memora.client import Memora
+from memora.client import MemoraClient
 
 try:
     from llama_index.core.vector_stores.types import (
@@ -18,7 +18,7 @@ except ImportError:
 
 
 class MemoraVectorStore(BasePydanticVectorStore):
-    """LlamaIndex VectorStore provider backed by Memora."""
+    """LlamaIndex BasePydanticVectorStore subclass provider backed by Memora."""
 
     stores_text: bool = True
     is_embedding_query: bool = True
@@ -27,7 +27,7 @@ class MemoraVectorStore(BasePydanticVectorStore):
     cluster: str = "llamaindex"
     base_url: str = "http://localhost:8000"
     api_key: Optional[str] = None
-    _client: Optional[Memora] = None
+    _client: Optional[MemoraClient] = None
 
     def __init__(
         self,
@@ -42,12 +42,12 @@ class MemoraVectorStore(BasePydanticVectorStore):
         self.cluster = cluster
         self.base_url = base_url
         self.api_key = api_key
-        self._client = Memora(base_url=base_url, api_key=api_key)
+        self._client = MemoraClient(base_url=base_url, api_key=api_key)
 
     @property
-    def client(self) -> Memora:
+    def client(self) -> MemoraClient:
         if self._client is None:
-            self._client = Memora(base_url=self.base_url, api_key=self.api_key)
+            self._client = MemoraClient(base_url=self.base_url, api_key=self.api_key)
         return self._client
 
     def add(self, nodes: List[Any], **add_kwargs: Any) -> List[str]:
@@ -55,7 +55,7 @@ class MemoraVectorStore(BasePydanticVectorStore):
         for node in nodes:
             text = node.get_content(metadata_mode="all") if hasattr(node, "get_content") else str(node)
             metadata = getattr(node, "metadata", {})
-            res = self.client.add(
+            res = self.client.remember(
                 text=text,
                 session_id=self.session_id,
                 cluster=self.cluster,
@@ -65,13 +65,13 @@ class MemoraVectorStore(BasePydanticVectorStore):
         return node_ids
 
     def delete(self, ref_doc_id: str, **delete_kwargs: Any) -> None:
-        self.client.delete(id=ref_doc_id)
+        self.client.forget(id=ref_doc_id)
 
     def query(self, query: Any, **kwargs: Any) -> Any:
         query_str = getattr(query, "query_str", None) or str(query)
         top_k = getattr(query, "similarity_top_k", 5)
 
-        memories = self.client.search(
+        memories = self.client.recall(
             query=query_str,
             session_id=self.session_id,
             cluster=self.cluster,

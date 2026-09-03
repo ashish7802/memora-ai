@@ -7,6 +7,8 @@ from app.api.routes.auth import router as auth_router
 from app.auth.middleware import APIKeyAuthMiddleware
 from app.core.config import settings
 from app.core.database import engine
+from app.core.exceptions import register_exception_handlers
+from app.middleware.rate_limit import RateLimitMiddleware
 
 
 @asynccontextmanager
@@ -25,6 +27,9 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
+# Register global consistent error handlers
+register_exception_handlers(app)
+
 # CORS Middleware
 app.add_middleware(
     CORSMiddleware,
@@ -33,6 +38,9 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Rate Limiting Middleware (100 req/min)
+app.add_middleware(RateLimitMiddleware, requests_per_minute=100, window_seconds=60)
 
 # Global API Key Authentication & Tenant Isolation Middleware
 app.add_middleware(APIKeyAuthMiddleware)

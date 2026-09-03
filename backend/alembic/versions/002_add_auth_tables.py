@@ -11,7 +11,7 @@ from sqlalchemy.dialects import postgresql
 
 # revision identifiers, used by Alembic.
 revision = '002'
-down_revision = '001'
+down_revision = '001_create_memory_tables'
 branch_labels = None
 depends_on = None
 
@@ -60,38 +60,14 @@ def upgrade() -> None:
     op.create_index(op.f('ix_api_keys_key_hash'), 'api_keys', ['key_hash'], unique=True)
     op.create_index(op.f('ix_api_keys_is_active'), 'api_keys', ['is_active'], unique=False)
 
-    # 4. Add tenant_id to memories, experience_logs, pattern_clusters, skill_proposals
+    # 4. Add tenant_id to memories
     op.add_column('memories', sa.Column('tenant_id', postgresql.UUID(as_uuid=True), nullable=True))
     op.create_foreign_key('fk_memories_tenant_id', 'memories', 'tenants', ['tenant_id'], ['id'], ondelete='CASCADE')
     op.create_index(op.f('ix_memories_tenant_id'), 'memories', ['tenant_id'], unique=False)
     op.create_index('ix_memories_tenant_session', 'memories', ['tenant_id', 'session_id'], unique=False)
 
-    op.add_column('experience_logs', sa.Column('tenant_id', postgresql.UUID(as_uuid=True), nullable=True))
-    op.create_foreign_key('fk_experience_logs_tenant_id', 'experience_logs', 'tenants', ['tenant_id'], ['id'], ondelete='CASCADE')
-    op.create_index(op.f('ix_experience_logs_tenant_id'), 'experience_logs', ['tenant_id'], unique=False)
-
-    op.add_column('pattern_clusters', sa.Column('tenant_id', postgresql.UUID(as_uuid=True), nullable=True))
-    op.create_foreign_key('fk_pattern_clusters_tenant_id', 'pattern_clusters', 'tenants', ['tenant_id'], ['id'], ondelete='CASCADE')
-    op.create_index(op.f('ix_pattern_clusters_tenant_id'), 'pattern_clusters', ['tenant_id'], unique=False)
-
-    op.add_column('skill_proposals', sa.Column('tenant_id', postgresql.UUID(as_uuid=True), nullable=True))
-    op.create_foreign_key('fk_skill_proposals_tenant_id', 'skill_proposals', 'tenants', ['tenant_id'], ['id'], ondelete='CASCADE')
-    op.create_index(op.f('ix_skill_proposals_tenant_id'), 'skill_proposals', ['tenant_id'], unique=False)
-
 
 def downgrade() -> None:
-    op.drop_constraint('fk_skill_proposals_tenant_id', 'skill_proposals', type_='foreignkey')
-    op.drop_index(op.f('ix_skill_proposals_tenant_id'), table_name='skill_proposals')
-    op.drop_column('skill_proposals', 'tenant_id')
-
-    op.drop_constraint('fk_pattern_clusters_tenant_id', 'pattern_clusters', type_='foreignkey')
-    op.drop_index(op.f('ix_pattern_clusters_tenant_id'), table_name='pattern_clusters')
-    op.drop_column('pattern_clusters', 'tenant_id')
-
-    op.drop_constraint('fk_experience_logs_tenant_id', 'experience_logs', type_='foreignkey')
-    op.drop_index(op.f('ix_experience_logs_tenant_id'), table_name='experience_logs')
-    op.drop_column('experience_logs', 'tenant_id')
-
     op.drop_index('ix_memories_tenant_session', table_name='memories')
     op.drop_constraint('fk_memories_tenant_id', 'memories', type_='foreignkey')
     op.drop_index(op.f('ix_memories_tenant_id'), table_name='memories')

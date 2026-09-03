@@ -5,11 +5,12 @@ from typing import Optional, Tuple
 from fastapi import Request, status
 from fastapi.responses import JSONResponse
 from starlette.middleware.base import BaseHTTPMiddleware
-from sqlalchemy import select, update
+from sqlalchemy import select
 from sqlalchemy.orm import selectinload
 
 from app.auth.models import APIKey, Tenant, User
 from app.core.database import AsyncSessionLocal
+from app.core.exceptions import create_error_response
 
 
 def generate_api_key(prefix_str: str = "mm_") -> Tuple[str, str, str]:
@@ -62,12 +63,10 @@ class APIKeyAuthMiddleware(BaseHTTPMiddleware):
                 raw_key = auth_header[7:].strip()
 
         if not raw_key:
-            return JSONResponse(
+            return create_error_response(
                 status_code=status.HTTP_401_UNAUTHORIZED,
-                content={
-                    "detail": "API Key missing. Provide 'X-API-Key' or 'Authorization: Bearer <api_key>' header.",
-                    "code": "API_KEY_REQUIRED",
-                },
+                code="API_KEY_REQUIRED",
+                message="API Key missing. Provide 'X-API-Key' or 'Authorization: Bearer <api_key>' header.",
                 headers={"WWW-Authenticate": "Bearer"},
             )
 
@@ -84,24 +83,27 @@ class APIKeyAuthMiddleware(BaseHTTPMiddleware):
             api_key_record = result.scalars().first()
 
             if not api_key_record:
-                return JSONResponse(
+                return create_error_response(
                     status_code=status.HTTP_401_UNAUTHORIZED,
-                    content={"detail": "Invalid API key.", "code": "INVALID_API_KEY"},
+                    code="INVALID_API_KEY",
+                    message="Invalid API key provided.",
                 )
 
             if not api_key_record.is_active:
-                return JSONResponse(
+                return create_error_response(
                     status_code=status.HTTP_403_FORBIDDEN,
-                    content={"detail": "API key has been revoked or is inactive.", "code": "API_KEY_INACTIVE"},
+                    code="API_KEY_INACTIVE",
+                    message="API key has been revoked or is inactive.",
                 )
 
             # Check expiration
             if api_key_record.expires_at:
                 now_utc = datetime.now(timezone.utc)
                 if api_key_record.expires_at < now_utc:
-                    return JSONResponse(
+                    return create_error_response(
                         status_code=status.HTTP_401_UNAUTHORIZED,
-                        content={"detail": "API key has expired.", "code": "API_KEY_EXPIRED"},
+                        code="API_KEY_EXPIRED",
+                        message="API key has expired.",
                     )
 
             # Update last_used timestamp asynchronously

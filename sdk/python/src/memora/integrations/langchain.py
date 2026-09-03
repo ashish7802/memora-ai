@@ -1,5 +1,5 @@
 from typing import Any, Dict, List, Optional
-from memora.client import Memora
+from memora.client import MemoraClient
 
 try:
     from langchain_core.memory import BaseMemory
@@ -10,8 +10,8 @@ except ImportError:
         pass
 
 
-class MemoraLangChainMemory(BaseMemory):
-    """LangChain memory provider powered by Memora pgvector backend."""
+class MemoraMemory(BaseMemory):
+    """LangChain BaseMemory adapter with session_id support powered by Memora vector store."""
 
     memory_key: str = "history"
     session_id: str = "default"
@@ -38,7 +38,7 @@ class MemoraLangChainMemory(BaseMemory):
         self.user_id = user_id
         self.top_k = top_k
         self.cluster = cluster
-        self.client = Memora(base_url=base_url, api_key=api_key)
+        self.client = MemoraClient(base_url=base_url, api_key=api_key)
 
     @property
     def memory_variables(self) -> List[str]:
@@ -55,7 +55,7 @@ class MemoraLangChainMemory(BaseMemory):
         if not query_text.strip():
             return {self.memory_key: "" if not self.return_messages else []}
 
-        memories = self.client.search(
+        memories = self.client.recall(
             query=query_text,
             session_id=self.session_id,
             user_id=self.user_id,
@@ -71,7 +71,7 @@ class MemoraLangChainMemory(BaseMemory):
         output_str = outputs.get(self.output_key or "output", "")
 
         memory_text = f"Human: {input_str}\nAI: {output_str}"
-        self.client.add(
+        self.client.remember(
             text=memory_text,
             session_id=self.session_id,
             user_id=self.user_id,
@@ -83,3 +83,7 @@ class MemoraLangChainMemory(BaseMemory):
     def clear(self) -> None:
         """Prune memories for this session."""
         self.client.prune(session_id=self.session_id)
+
+
+# Alias for backwards compatibility
+MemoraLangChainMemory = MemoraMemory

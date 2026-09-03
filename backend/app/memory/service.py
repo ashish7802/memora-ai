@@ -109,3 +109,33 @@ class MemoryService:
             max_importance=payload.max_importance,
             max_access_count=payload.max_access_count,
         )
+
+    async def get_stats(self, session_id: Optional[str] = None) -> Dict[str, Any]:
+        from sqlalchemy import func, select
+        from app.memory.models import MemoryRecord
+
+        stmt = select(func.count(MemoryRecord.id))
+        if session_id:
+            stmt = stmt.where(MemoryRecord.session_id == session_id)
+        total_res = await self.vector_store.session.execute(stmt)
+        total_memories = total_res.scalar() or 0
+
+        cluster_stmt = select(MemoryRecord.cluster, func.count(MemoryRecord.id)).group_by(MemoryRecord.cluster)
+        if session_id:
+            cluster_stmt = cluster_stmt.where(MemoryRecord.session_id == session_id)
+        cluster_res = await self.vector_store.session.execute(cluster_stmt)
+        cluster_dist = {row[0]: row[1] for row in cluster_res.all()}
+
+        avg_stmt = select(func.avg(MemoryRecord.importance), func.sum(MemoryRecord.access_count))
+        if session_id:
+            avg_stmt = avg_stmt.where(MemoryRecord.session_id == session_id)
+        avg_res = await self.vector_store.session.execute(avg_stmt)
+        avg_imp, sum_access = avg_res.first() or (1.0, 0.0)
+
+        return {
+            "total_memories": total_memories,
+            "cluster_distribution": cluster_dist,
+            "average_importance": round(float(avg_imp or 1.0), 3),
+            "total_access_count": float(sum_access or 0.0),
+            "storage_engine": "PostgreSQL + pgvector (HNSW index)",
+        }
