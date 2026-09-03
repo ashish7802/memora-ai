@@ -10,6 +10,20 @@ export interface MemoryItem {
   };
   embedding?: number[];
   distance?: number;
+  score?: number;
+  created_at?: string;
+  updated_at?: string;
+  decay_score?: number;
+}
+
+export interface SearchResult {
+  id: string;
+  text: string;
+  metadata: Record<string, any>;
+  score: number;
+  created_at?: string;
+  decay_score?: number;
+  distance?: number;
 }
 
 export interface SkillDefinition {

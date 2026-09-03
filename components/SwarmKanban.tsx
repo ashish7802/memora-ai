@@ -284,8 +284,10 @@ export default function SwarmKanban({
   const handleInjectSynthesisToMemory = async () => {
     if (!activePlan || !activePlan.finalSynthesis) return;
 
+    const memoraApiUrl = process.env.NEXT_PUBLIC_MEMORA_API_URL || 'http://localhost:8000/v1/memory';
+
     try {
-      const res = await fetch('/api/memory', {
+      const res = await fetch(memoraApiUrl, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

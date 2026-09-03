@@ -141,12 +141,14 @@ export default function MemorySemanticGraph({
     height: 450,
   });
 
+  const MEMORA_API_URL = process.env.NEXT_PUBLIC_MEMORA_API_URL || 'http://localhost:8000/v1/memory';
+
   // User-triggered refresh
   const refreshGraphData = async () => {
     setIsLoading(true);
     setFetchError(null);
     try {
-      const res = await fetch('/api/memory/graph?min_similarity=0.1');
+      const res = await fetch(`${MEMORA_API_URL}/graph?min_similarity=0.1&limit=200`);
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const data: SemanticGraphResponse = await res.json();
       setRawNodes(data.nodes || []);
@@ -167,7 +169,7 @@ export default function MemorySemanticGraph({
     let ignore = false;
     async function loadData() {
       try {
-        const res = await fetch('/api/memory/graph?min_similarity=0.1');
+        const res = await fetch(`${MEMORA_API_URL}/graph?min_similarity=0.1&limit=200`);
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         const data: SemanticGraphResponse = await res.json();
         if (!ignore) {
@@ -190,7 +192,7 @@ export default function MemorySemanticGraph({
     return () => {
       ignore = true;
     };
-  }, []);
+  }, [MEMORA_API_URL]);
 
   // ResizeObserver for responsive container sizing
   useEffect(() => {

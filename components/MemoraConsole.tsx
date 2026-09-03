@@ -28,6 +28,8 @@ import MemorySemanticGraph from '@/components/MemorySemanticGraph';
 import SwarmKanban from '@/components/SwarmKanban';
 import LocalAndPlatforms from '@/components/LocalAndPlatforms';
 
+import { MemoryItem, SearchResult } from '@/lib/memora/types';
+
 interface ChatMessage {
   id: string;
   role: 'user' | 'agent';
@@ -35,18 +37,6 @@ interface ChatMessage {
   tool_used?: string | null;
   tool_result?: any | null;
   timestamp: string;
-}
-
-interface MemoryItem {
-  id: string;
-  text: string;
-  metadata: {
-    source?: string;
-    category?: string;
-    timestamp?: string;
-    [key: string]: any;
-  };
-  distance?: number;
 }
 
 interface SkillProposal {
@@ -186,16 +176,28 @@ export default function MemoraConsole({
     }
   };
 
+  const MEMORA_API_URL = process.env.NEXT_PUBLIC_MEMORA_API_URL || 'http://localhost:8000/v1/memory';
+
   const handleSearch = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!searchQuery.trim() || isSearching) return;
 
     setIsSearching(true);
     try {
-      const res = await fetch(`/api/memory/search?q=${encodeURIComponent(searchQuery)}`);
+      const res = await fetch(`${MEMORA_API_URL}/search?q=${encodeURIComponent(searchQuery)}&top_k=10`);
       if (!res.ok) throw new Error('Search failed');
       const data = await res.json();
-      setSearchResults(data.results || []);
+      const rawResults = Array.isArray(data) ? data : (data.results || []);
+      const formattedResults: MemoryItem[] = rawResults.map((item: any) => ({
+        id: String(item.id),
+        text: item.text,
+        metadata: item.metadata || {},
+        score: typeof item.score === 'number' ? item.score : (1 - (item.distance || 0.2)),
+        distance: typeof item.score === 'number' ? (1 - item.score) : item.distance,
+        created_at: item.created_at,
+        decay_score: item.decay_score,
+      }));
+      setSearchResults(formattedResults);
     } catch (err: any) {
       console.error(err);
     } finally {
@@ -207,9 +209,9 @@ export default function MemoraConsole({
     e.preventDefault();
     if (!addText.trim()) return;
 
-    setAddStatus({ message: 'Encoding and saving...', type: 'loading' });
+    setAddStatus({ message: 'Encoding and saving to Vector Engine...', type: 'loading' });
     try {
-      const res = await fetch('/api/memory/add', {
+      const res = await fetch(MEMORA_API_URL, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -505,7 +507,7 @@ export default function MemoraConsole({
                       <div className="flex items-center justify-between mb-1">
                         <span className="font-mono text-[10px] font-bold text-[#588157]">#{item.id}</span>
                         <span className="text-[10px] text-[#8A817C]">
-                          Sim: {((1 - (item.distance || 0.2)) * 100).toFixed(1)}%
+                          Sim: {(typeof item.score === 'number' ? item.score * 100 : ((1 - (item.distance || 0.2)) * 100)).toFixed(1)}%
                         </span>
                       </div>
                       <p className="text-[#2D2D2A] text-xs">{item.text}</p>
