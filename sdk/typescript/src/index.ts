@@ -1,20 +1,45 @@
 import axios, { AxiosError, AxiosInstance } from 'axios';
 
+export interface RankingBreakdown {
+  vector_similarity: number;
+  recency_score: number;
+  importance_score: number;
+  frequency_score: number;
+  combined_score: number;
+}
+
 export interface Memory {
   id: string;
+  tenant_id?: string;
   text: string;
   session_id: string;
   user_id?: string;
   agent_id?: string;
   cluster: string;
+  memory_type: string;
+  status: string;
   importance: number;
+  confidence: number;
   access_count: number;
+  recall_count: number;
+  source_type: string;
+  source_id?: string;
+  document_id?: string;
+  message_id?: string;
   metadata: Record<string, any>;
   similarity_score?: number;
   cosine_distance?: number;
+  ranking_breakdown?: RankingBreakdown;
+  conflict_warning?: string;
+  valid_from?: string;
+  valid_until?: string;
+  last_recalled_at?: string;
+  forgotten_at?: string;
   created_at: string;
   updated_at: string;
   last_accessed_at: string;
+  embedding_provider?: string;
+  embedding_model?: string;
 }
 
 export interface MemoryCreateInput {
@@ -23,8 +48,14 @@ export interface MemoryCreateInput {
   user_id?: string;
   agent_id?: string;
   cluster?: string;
+  memory_type?: string;
   importance?: number;
+  confidence?: number;
   metadata?: Record<string, any>;
+  valid_from?: string;
+  valid_until?: string;
+  legal_basis?: string;
+  retention_policy?: string;
 }
 
 export interface MemorySearchInput {
@@ -32,16 +63,33 @@ export interface MemorySearchInput {
   session_id?: string;
   cluster?: string;
   user_id?: string;
+  memory_type?: string;
+  status?: string;
   top_k?: number;
   threshold?: number;
+  as_of?: string;
+  include_explanation?: boolean;
 }
 
 export interface MemoryUpdateInput {
   id: string;
   text?: string;
   cluster?: string;
+  memory_type?: string;
+  status?: string;
   importance?: number;
+  confidence?: number;
   metadata?: Record<string, any>;
+  valid_until?: string;
+}
+
+export interface MemoryForgetResult {
+  status: string;
+  memory_id: string;
+  mode: string;
+  audit_log_id: string;
+  deletion_proof?: string;
+  message: string;
 }
 
 export interface MemoryDeleteResult {
@@ -61,6 +109,19 @@ export interface MemoryPruneResult {
   status: string;
   pruned_count: number;
   message: string;
+}
+
+export interface AuditLogEntry {
+  id: string;
+  tenant_id: string;
+  target_type: string;
+  target_id: string;
+  action: string;
+  actor_type: string;
+  actor_id?: string;
+  reason?: string;
+  metadata: Record<string, any>;
+  timestamp: string;
 }
 
 export interface MemoraClientOptions {
@@ -122,7 +183,7 @@ export class MemoraClient {
     const baseURL = (options.baseUrl || 'http://localhost:8000').replace(/\/+$/, '');
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
-      'User-Agent': 'memora-ts-sdk/0.1.0',
+      'User-Agent': 'memora-ts-sdk/0.2.0',
       ...(options.headers || {}),
     };
 
@@ -163,14 +224,13 @@ export class MemoraClient {
     throw new MemoraError(err?.message || 'Unknown network error', undefined, undefined, err);
   }
 
-  // Core Wedge API
   async remember(input: MemoryCreateInput | string, sessionId = 'default', options?: Partial<MemoryCreateInput>): Promise<Memory> {
     try {
       const payload: MemoryCreateInput = typeof input === 'string'
         ? { text: input, session_id: sessionId, ...options }
         : { session_id: 'default', cluster: 'general', importance: 1.0, metadata: {}, ...input };
 
-      const res = await this.http.post<Memory>('/v1/memory/add', payload);
+      const res = await this.http.post<Memory>('/v1/memory', payload);
       return res.data;
     } catch (err) {
       this.handleError(err);
@@ -190,11 +250,21 @@ export class MemoraClient {
     }
   }
 
-  async forget(id: string): Promise<MemoryDeleteResult> {
+  async forget(id: string, mode: 'soft' | 'hard' = 'soft', reason = 'user_command'): Promise<MemoryForgetResult> {
     try {
-      const res = await this.http.delete<MemoryDeleteResult>('/v1/memory/delete', {
-        data: { id },
+      const res = await this.http.post<MemoryForgetResult>(`/v1/memory/${id}/forget`, {
+        mode,
+        reason,
       });
+      return res.data;
+    } catch (err) {
+      this.handleError(err);
+    }
+  }
+
+  async delete(id: string): Promise<MemoryDeleteResult> {
+    try {
+      const res = await this.http.delete<MemoryDeleteResult>(`/v1/memory/${id}`);
       return res.data;
     } catch (err) {
       this.handleError(err);
@@ -203,7 +273,7 @@ export class MemoraClient {
 
   async update(input: MemoryUpdateInput): Promise<Memory> {
     try {
-      const res = await this.http.put<Memory>('/v1/memory/update', input);
+      const res = await this.http.put<Memory>(`/v1/memory/${input.id}`, input);
       return res.data;
     } catch (err) {
       this.handleError(err);
@@ -219,81 +289,29 @@ export class MemoraClient {
     }
   }
 
+  async getAuditLogs(targetId?: string, limit = 50): Promise<AuditLogEntry[]> {
+    try {
+      const params: Record<string, any> = { limit };
+      if (targetId) params.target_id = targetId;
+      const res = await this.http.get<{ status: string; data: AuditLogEntry[] }>('/v1/memory/audit', { params });
+      return res.data.data;
+    } catch (err) {
+      this.handleError(err);
+    }
+  }
+
+  async getStats(): Promise<Record<string, any>> {
+    try {
+      const res = await this.http.get<Record<string, any>>('/v1/stats');
+      return res.data;
+    } catch (err) {
+      this.handleError(err);
+    }
+  }
+
   // Aliases for compatibility
   add = this.remember;
   search = this.recall;
-  delete = this.forget;
-}
-
-/**
- * High-level session-scoped Memory Manager for TypeScript
- */
-export class MemoryManager {
-  private client: MemoraClient;
-  public sessionId: string;
-  public userId?: string;
-  public agentId?: string;
-
-  constructor(options: {
-    sessionId?: string;
-    userId?: string;
-    agentId?: string;
-    client?: MemoraClient;
-    baseUrl?: string;
-    apiKey?: string;
-  } = {}) {
-    this.sessionId = options.sessionId || 'default';
-    this.userId = options.userId;
-    this.agentId = options.agentId;
-    this.client = options.client || new MemoraClient({ baseUrl: options.baseUrl, apiKey: options.apiKey });
-  }
-
-  async remember(text: string, cluster = 'general', importance = 1.0, metadata?: Record<string, any>): Promise<Memory> {
-    return this.client.remember({
-      text,
-      session_id: this.sessionId,
-      user_id: this.userId,
-      agent_id: this.agentId,
-      cluster,
-      importance,
-      metadata,
-    });
-  }
-
-  async recall(query: string, cluster?: string, top_k = 5, threshold?: number): Promise<Memory[]> {
-    return this.client.recall({
-      query,
-      session_id: this.sessionId,
-      user_id: this.userId,
-      cluster,
-      top_k,
-      threshold,
-    });
-  }
-
-  async forget(id: string): Promise<MemoryDeleteResult> {
-    return this.client.forget(id);
-  }
-
-  async update(id: string, updates: Omit<MemoryUpdateInput, 'id'>): Promise<Memory> {
-    return this.client.update({ id, ...updates });
-  }
-
-  async prune(olderThanDays?: number, maxImportance = 1.0, maxAccessCount = 0.0): Promise<MemoryPruneResult> {
-    return this.client.prune({
-      session_id: this.sessionId,
-      older_than_days: olderThanDays,
-      max_importance: maxImportance,
-      max_access_count: maxAccessCount,
-    });
-  }
-
-  // Aliases
-  add = this.remember;
-  search = this.recall;
-  delete = this.forget;
-  edit = this.update;
-  clean = this.prune;
 }
 
 export default MemoraClient;

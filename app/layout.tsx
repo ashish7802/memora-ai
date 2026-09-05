@@ -2,20 +2,20 @@ import type {Metadata} from 'next';
 import './globals.css'; // Global styles
 
 export const metadata: Metadata = {
-  title: 'Memora - Agent Memory & Skills Platform',
+  title: 'Memora - Auditable Memory & Context Control for AI Agents',
   description:
-    'Agent Memory & Skills Platform - Foundation & Data Layer with self-improving Experience Logger, Skill Generator, Multi-Agent Swarm with Hermes Kanban Orchestrator, Local-First Ollama Hub, and Telegram/Discord/Slack gateways.',
+    'An auditable memory and context-control layer for AI agents. Remember the right thing. Prove why it was recalled. Forget it on command.',
   openGraph: {
-    title: 'Memora - Agent Memory & Skills Platform',
+    title: 'Memora - Auditable Memory & Context Control for AI Agents',
     description:
-      'Agent Memory & Skills Platform - Foundation & Data Layer with self-improving Experience Logger, Skill Generator, Multi-Agent Swarm with Hermes Kanban Orchestrator, Local-First Ollama Hub, and Telegram/Discord/Slack gateways.',
+      'An auditable memory and context-control layer for AI agents. Remember the right thing. Prove why it was recalled. Forget it on command.',
     type: 'website',
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'Memora - Agent Memory & Skills Platform',
+    title: 'Memora - Auditable Memory & Context Control for AI Agents',
     description:
-      'Agent Memory & Skills Platform - Foundation & Data Layer with self-improving Experience Logger, Skill Generator, Multi-Agent Swarm with Hermes Kanban Orchestrator, Local-First Ollama Hub, and Telegram/Discord/Slack gateways.',
+      'An auditable memory and context-control layer for AI agents. Remember the right thing. Prove why it was recalled. Forget it on command.',
   },
 };
 

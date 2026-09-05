@@ -4,7 +4,6 @@ from typing import Any, Dict, List, Optional
 from pydantic import BaseModel, ConfigDict, Field
 from sqlalchemy import Boolean, Column, DateTime, Float, ForeignKey, Index, Integer, String, Text
 from sqlalchemy.dialects.postgresql import JSONB, UUID
-from sqlalchemy.orm import declarative_base
 
 from app.memory.models import Base
 
@@ -13,7 +12,7 @@ class ExperienceLog(Base):
     __tablename__ = "experience_logs"
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4, index=True)
-    tenant_id = Column(UUID(as_uuid=True), ForeignKey("tenants.id", ondelete="CASCADE"), nullable=True, index=True)
+    tenant_id = Column(UUID(as_uuid=True), ForeignKey("tenants.id", ondelete="CASCADE"), nullable=False, index=True)
     session_id = Column(String(128), nullable=False, index=True, default="default")
     user_query = Column(Text, nullable=False)
     agent_response = Column(Text, nullable=False)
@@ -29,7 +28,7 @@ class PatternCluster(Base):
     __tablename__ = "pattern_clusters"
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4, index=True)
-    tenant_id = Column(UUID(as_uuid=True), ForeignKey("tenants.id", ondelete="CASCADE"), nullable=True, index=True)
+    tenant_id = Column(UUID(as_uuid=True), ForeignKey("tenants.id", ondelete="CASCADE"), nullable=False, index=True)
     session_id = Column(String(128), nullable=True, index=True)
     title = Column(String(256), nullable=False)
     category = Column(String(64), nullable=False, default="general", index=True)
@@ -47,16 +46,23 @@ class SkillProposal(Base):
     __tablename__ = "skill_proposals"
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4, index=True)
-    tenant_id = Column(UUID(as_uuid=True), ForeignKey("tenants.id", ondelete="CASCADE"), nullable=True, index=True)
+    tenant_id = Column(UUID(as_uuid=True), ForeignKey("tenants.id", ondelete="CASCADE"), nullable=False, index=True)
     cluster_id = Column(UUID(as_uuid=True), nullable=True, index=True)
-    name = Column(String(128), nullable=False, unique=True, index=True)
+    name = Column(String(128), nullable=False, index=True)
     description = Column(Text, nullable=False)
     language = Column(String(32), nullable=False, default="python")
     code = Column(Text, nullable=False)
     input_schema = Column(JSONB, nullable=False, default=dict)
     output_schema = Column(JSONB, nullable=False, default=dict)
-    confidence_score = Column(Float, nullable=False, default=0.85)
-    status = Column(String(32), nullable=False, default="proposed", index=True)  # proposed, verified, loaded, disabled
+    confidence_score = Column(Float, nullable=False, default=0.0)
+    status = Column(String(32), nullable=False, default="proposed", index=True)  # strictly proposed initially
+    review_status = Column(String(32), nullable=False, default="unreviewed", index=True)
+    reviewer = Column(String(128), nullable=True)
+    model_provider = Column(String(64), nullable=True, default="gemini")
+    prompt_hash = Column(String(64), nullable=True)
+    code_hash = Column(String(64), nullable=True)
+    static_analysis_passed = Column(Boolean, nullable=False, default=False)
+    static_analysis_findings = Column(JSONB, nullable=False, default=list)
     created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), nullable=False)
 
 
@@ -77,7 +83,7 @@ class ExperienceLogResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
     id: uuid.UUID
-    tenant_id: Optional[uuid.UUID] = None
+    tenant_id: uuid.UUID
     session_id: str
     user_query: str
     agent_response: str
@@ -93,7 +99,7 @@ class PatternClusterResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
     id: uuid.UUID
-    tenant_id: Optional[uuid.UUID] = None
+    tenant_id: uuid.UUID
     session_id: Optional[str] = None
     title: str
     category: str
@@ -124,7 +130,7 @@ class SkillProposalResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
     id: uuid.UUID
-    tenant_id: Optional[uuid.UUID] = None
+    tenant_id: uuid.UUID
     cluster_id: Optional[uuid.UUID] = None
     name: str
     description: str
@@ -134,4 +140,11 @@ class SkillProposalResponse(BaseModel):
     output_schema: Dict[str, Any]
     confidence_score: float
     status: str
+    review_status: str
+    reviewer: Optional[str] = None
+    model_provider: Optional[str] = None
+    prompt_hash: Optional[str] = None
+    code_hash: Optional[str] = None
+    static_analysis_passed: bool
+    static_analysis_findings: List[str]
     created_at: datetime

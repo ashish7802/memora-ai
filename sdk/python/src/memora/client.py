@@ -1,3 +1,4 @@
+from datetime import datetime
 from typing import Any, Dict, List, Optional, Union
 import uuid
 import httpx
@@ -11,9 +12,11 @@ from memora.exceptions import (
     MemoraRateLimitError,
 )
 from memora.models import (
+    AuditLogEntry,
     Memory,
     MemoryCreate,
     MemoryDeleteResult,
+    MemoryForgetResult,
     MemoryPruneResult,
     MemorySearchQuery,
     MemorySearchResult,
@@ -37,7 +40,7 @@ class BaseClient:
     def _get_headers(self) -> Dict[str, str]:
         headers = {
             "Content-Type": "application/json",
-            "User-Agent": "memora-python-sdk/0.1.0",
+            "User-Agent": "memora-python-sdk/0.2.0",
         }
         if self.api_key:
             headers["Authorization"] = f"Bearer {self.api_key}"
@@ -49,7 +52,6 @@ class BaseClient:
         if response.is_success:
             return response.json()
 
-        # Parse standardized error JSON if available: {"error": {"code": "...", "message": "..."}}
         error_code = None
         error_message = response.text
         try:
@@ -124,7 +126,6 @@ class Memora(BaseClient):
     def __exit__(self, exc_type, exc_val, exc_tb):
         self.close()
 
-    # Core Wedge Methods
     def remember(
         self,
         text: str,
@@ -132,21 +133,33 @@ class Memora(BaseClient):
         user_id: Optional[str] = None,
         agent_id: Optional[str] = None,
         cluster: str = "general",
+        memory_type: str = "context",
         importance: float = 1.0,
+        confidence: float = 0.9,
         metadata: Optional[Dict[str, Any]] = None,
+        valid_from: Optional[datetime] = None,
+        valid_until: Optional[datetime] = None,
+        legal_basis: Optional[str] = None,
+        retention_policy: Optional[str] = None,
     ) -> Memory:
-        """Store a memory item in vector memory."""
+        """Store an auditable memory item in vector memory."""
         payload = MemoryCreate(
             text=text,
             session_id=session_id,
             user_id=user_id,
             agent_id=agent_id,
             cluster=cluster,
+            memory_type=memory_type,
             importance=importance,
+            confidence=confidence,
             metadata=metadata or {},
+            valid_from=valid_from,
+            valid_until=valid_until,
+            legal_basis=legal_basis,
+            retention_policy=retention_policy,
         )
         try:
-            resp = self._client.post("/v1/memory/add", json=payload.model_dump())
+            resp = self._client.post("/v1/memory", json=payload.model_dump(mode="json"))
             data = self._handle_response(resp)
             return Memory.model_validate(data)
         except httpx.RequestError as e:
@@ -158,31 +171,55 @@ class Memora(BaseClient):
         session_id: Optional[str] = None,
         cluster: Optional[str] = None,
         user_id: Optional[str] = None,
+        memory_type: Optional[str] = None,
+        status: Optional[str] = "active",
         top_k: int = 5,
         threshold: Optional[float] = None,
+        as_of: Optional[datetime] = None,
     ) -> List[Memory]:
-        """Perform semantic associative vector search."""
+        """Perform explainable semantic recall."""
         payload = MemorySearchQuery(
             query=query,
             session_id=session_id,
             cluster=cluster,
             user_id=user_id,
+            memory_type=memory_type,
+            status=status,
             top_k=top_k,
             threshold=threshold,
+            as_of=as_of,
         )
         try:
-            resp = self._client.post("/v1/memory/search", json=payload.model_dump())
+            resp = self._client.post("/v1/memory/search", json=payload.model_dump(mode="json"))
             data = self._handle_response(resp)
             result = MemorySearchResult.model_validate(data)
             return result.data
         except httpx.RequestError as e:
             raise MemoraConnectionError(f"Connection failed: {str(e)}") from e
 
-    def forget(self, id: Union[str, uuid.UUID]) -> MemoryDeleteResult:
-        """Delete a memory item by UUID."""
+    def forget(
+        self,
+        id: Union[str, uuid.UUID],
+        mode: str = "soft",
+        reason: str = "user_command",
+    ) -> MemoryForgetResult:
+        """Verifiable forget on command (soft tombstone or cryptographic hard purge)."""
         uid = uuid.UUID(str(id)) if isinstance(id, str) else id
         try:
-            resp = self._client.request("DELETE", "/v1/memory/delete", json={"id": str(uid)})
+            resp = self._client.post(
+                f"/v1/memory/{uid}/forget",
+                json={"mode": mode, "reason": reason},
+            )
+            data = self._handle_response(resp)
+            return MemoryForgetResult.model_validate(data)
+        except httpx.RequestError as e:
+            raise MemoraConnectionError(f"Connection failed: {str(e)}") from e
+
+    def delete(self, id: Union[str, uuid.UUID]) -> MemoryDeleteResult:
+        """Permanently delete a memory item."""
+        uid = uuid.UUID(str(id)) if isinstance(id, str) else id
+        try:
+            resp = self._client.delete(f"/v1/memory/{uid}")
             data = self._handle_response(resp)
             return MemoryDeleteResult.model_validate(data)
         except httpx.RequestError as e:
@@ -193,21 +230,28 @@ class Memora(BaseClient):
         id: Union[str, uuid.UUID],
         text: Optional[str] = None,
         cluster: Optional[str] = None,
+        memory_type: Optional[str] = None,
+        status: Optional[str] = None,
         importance: Optional[float] = None,
+        confidence: Optional[float] = None,
         metadata: Optional[Dict[str, Any]] = None,
-        **kwargs: Any,
+        valid_until: Optional[datetime] = None,
     ) -> Memory:
         """Update an existing memory item."""
         uid = uuid.UUID(str(id)) if isinstance(id, str) else id
         payload = MemoryUpdate(
             id=uid,
-            text=text or kwargs.get("text"),
-            cluster=cluster or kwargs.get("cluster"),
-            importance=importance if importance is not None else kwargs.get("importance"),
-            metadata=metadata if metadata is not None else kwargs.get("metadata"),
+            text=text,
+            cluster=cluster,
+            memory_type=memory_type,
+            status=status,
+            importance=importance,
+            confidence=confidence,
+            metadata=metadata,
+            valid_until=valid_until,
         )
         try:
-            resp = self._client.put("/v1/memory/update", json=payload.model_dump(mode="json"))
+            resp = self._client.put(f"/v1/memory/{uid}", json=payload.model_dump(mode="json"))
             data = self._handle_response(resp)
             return Memory.model_validate(data)
         except httpx.RequestError as e:
@@ -219,14 +263,13 @@ class Memora(BaseClient):
         older_than_days: Optional[int] = None,
         max_importance: Optional[float] = None,
         max_access_count: Optional[float] = None,
-        **kwargs: Any,
     ) -> MemoryPruneResult:
         """Bulk prune stale memories."""
         payload = {
-            "session_id": session_id or kwargs.get("session_id"),
-            "older_than_days": older_than_days if older_than_days is not None else kwargs.get("older_than_days"),
-            "max_importance": max_importance if max_importance is not None else kwargs.get("max_importance"),
-            "max_access_count": max_access_count if max_access_count is not None else kwargs.get("max_access_count"),
+            "session_id": session_id,
+            "older_than_days": older_than_days,
+            "max_importance": max_importance,
+            "max_access_count": max_access_count,
         }
         try:
             resp = self._client.post("/v1/memory/prune", json=payload)
@@ -235,10 +278,33 @@ class Memora(BaseClient):
         except httpx.RequestError as e:
             raise MemoraConnectionError(f"Connection failed: {str(e)}") from e
 
+    def get_audit_logs(
+        self,
+        target_id: Optional[str] = None,
+        limit: int = 50,
+    ) -> List[AuditLogEntry]:
+        """Fetch tenant audit logs."""
+        params = {"limit": limit}
+        if target_id:
+            params["target_id"] = target_id
+        try:
+            resp = self._client.get("/v1/memory/audit", params=params)
+            data = self._handle_response(resp)
+            return [AuditLogEntry.model_validate(item) for item in data.get("data", [])]
+        except httpx.RequestError as e:
+            raise MemoraConnectionError(f"Connection failed: {str(e)}") from e
+
+    def get_stats(self) -> Dict[str, Any]:
+        """Retrieve live tenant memory metrics."""
+        try:
+            resp = self._client.get("/v1/stats")
+            return self._handle_response(resp)
+        except httpx.RequestError as e:
+            raise MemoraConnectionError(f"Connection failed: {str(e)}") from e
+
     # Aliases
     add = remember
     search = recall
-    delete = forget
 
 
 class AsyncMemora(BaseClient):
@@ -274,21 +340,32 @@ class AsyncMemora(BaseClient):
         user_id: Optional[str] = None,
         agent_id: Optional[str] = None,
         cluster: str = "general",
+        memory_type: str = "context",
         importance: float = 1.0,
+        confidence: float = 0.9,
         metadata: Optional[Dict[str, Any]] = None,
+        valid_from: Optional[datetime] = None,
+        valid_until: Optional[datetime] = None,
+        legal_basis: Optional[str] = None,
+        retention_policy: Optional[str] = None,
     ) -> Memory:
-        """Store a memory item in vector memory asynchronously."""
         payload = MemoryCreate(
             text=text,
             session_id=session_id,
             user_id=user_id,
             agent_id=agent_id,
             cluster=cluster,
+            memory_type=memory_type,
             importance=importance,
+            confidence=confidence,
             metadata=metadata or {},
+            valid_from=valid_from,
+            valid_until=valid_until,
+            legal_basis=legal_basis,
+            retention_policy=retention_policy,
         )
         try:
-            resp = await self._client.post("/v1/memory/add", json=payload.model_dump())
+            resp = await self._client.post("/v1/memory", json=payload.model_dump(mode="json"))
             data = self._handle_response(resp)
             return Memory.model_validate(data)
         except httpx.RequestError as e:
@@ -300,31 +377,52 @@ class AsyncMemora(BaseClient):
         session_id: Optional[str] = None,
         cluster: Optional[str] = None,
         user_id: Optional[str] = None,
+        memory_type: Optional[str] = None,
+        status: Optional[str] = "active",
         top_k: int = 5,
         threshold: Optional[float] = None,
+        as_of: Optional[datetime] = None,
     ) -> List[Memory]:
-        """Perform semantic associative vector search asynchronously."""
         payload = MemorySearchQuery(
             query=query,
             session_id=session_id,
             cluster=cluster,
             user_id=user_id,
+            memory_type=memory_type,
+            status=status,
             top_k=top_k,
             threshold=threshold,
+            as_of=as_of,
         )
         try:
-            resp = await self._client.post("/v1/memory/search", json=payload.model_dump())
+            resp = await self._client.post("/v1/memory/search", json=payload.model_dump(mode="json"))
             data = self._handle_response(resp)
             result = MemorySearchResult.model_validate(data)
             return result.data
         except httpx.RequestError as e:
             raise MemoraConnectionError(f"Connection failed: {str(e)}") from e
 
-    async def forget(self, id: Union[str, uuid.UUID]) -> MemoryDeleteResult:
-        """Delete a memory item by UUID asynchronously."""
+    async def forget(
+        self,
+        id: Union[str, uuid.UUID],
+        mode: str = "soft",
+        reason: str = "user_command",
+    ) -> MemoryForgetResult:
         uid = uuid.UUID(str(id)) if isinstance(id, str) else id
         try:
-            resp = await self._client.request("DELETE", "/v1/memory/delete", json={"id": str(uid)})
+            resp = await self._client.post(
+                f"/v1/memory/{uid}/forget",
+                json={"mode": mode, "reason": reason},
+            )
+            data = self._handle_response(resp)
+            return MemoryForgetResult.model_validate(data)
+        except httpx.RequestError as e:
+            raise MemoraConnectionError(f"Connection failed: {str(e)}") from e
+
+    async def delete(self, id: Union[str, uuid.UUID]) -> MemoryDeleteResult:
+        uid = uuid.UUID(str(id)) if isinstance(id, str) else id
+        try:
+            resp = await self._client.delete(f"/v1/memory/{uid}")
             data = self._handle_response(resp)
             return MemoryDeleteResult.model_validate(data)
         except httpx.RequestError as e:
@@ -335,21 +433,27 @@ class AsyncMemora(BaseClient):
         id: Union[str, uuid.UUID],
         text: Optional[str] = None,
         cluster: Optional[str] = None,
+        memory_type: Optional[str] = None,
+        status: Optional[str] = None,
         importance: Optional[float] = None,
+        confidence: Optional[float] = None,
         metadata: Optional[Dict[str, Any]] = None,
-        **kwargs: Any,
+        valid_until: Optional[datetime] = None,
     ) -> Memory:
-        """Update an existing memory item asynchronously."""
         uid = uuid.UUID(str(id)) if isinstance(id, str) else id
         payload = MemoryUpdate(
             id=uid,
-            text=text or kwargs.get("text"),
-            cluster=cluster or kwargs.get("cluster"),
-            importance=importance if importance is not None else kwargs.get("importance"),
-            metadata=metadata if metadata is not None else kwargs.get("metadata"),
+            text=text,
+            cluster=cluster,
+            memory_type=memory_type,
+            status=status,
+            importance=importance,
+            confidence=confidence,
+            metadata=metadata,
+            valid_until=valid_until,
         )
         try:
-            resp = await self._client.put("/v1/memory/update", json=payload.model_dump(mode="json"))
+            resp = await self._client.put(f"/v1/memory/{uid}", json=payload.model_dump(mode="json"))
             data = self._handle_response(resp)
             return Memory.model_validate(data)
         except httpx.RequestError as e:
@@ -361,14 +465,12 @@ class AsyncMemora(BaseClient):
         older_than_days: Optional[int] = None,
         max_importance: Optional[float] = None,
         max_access_count: Optional[float] = None,
-        **kwargs: Any,
     ) -> MemoryPruneResult:
-        """Bulk prune stale memories asynchronously."""
         payload = {
-            "session_id": session_id or kwargs.get("session_id"),
-            "older_than_days": older_than_days if older_than_days is not None else kwargs.get("older_than_days"),
-            "max_importance": max_importance if max_importance is not None else kwargs.get("max_importance"),
-            "max_access_count": max_access_count if max_access_count is not None else kwargs.get("max_access_count"),
+            "session_id": session_id,
+            "older_than_days": older_than_days,
+            "max_importance": max_importance,
+            "max_access_count": max_access_count,
         }
         try:
             resp = await self._client.post("/v1/memory/prune", json=payload)
@@ -377,12 +479,33 @@ class AsyncMemora(BaseClient):
         except httpx.RequestError as e:
             raise MemoraConnectionError(f"Connection failed: {str(e)}") from e
 
+    async def get_audit_logs(
+        self,
+        target_id: Optional[str] = None,
+        limit: int = 50,
+    ) -> List[AuditLogEntry]:
+        params = {"limit": limit}
+        if target_id:
+            params["target_id"] = target_id
+        try:
+            resp = await self._client.get("/v1/memory/audit", params=params)
+            data = self._handle_response(resp)
+            return [AuditLogEntry.model_validate(item) for item in data.get("data", [])]
+        except httpx.RequestError as e:
+            raise MemoraConnectionError(f"Connection failed: {str(e)}") from e
+
+    async def get_stats(self) -> Dict[str, Any]:
+        try:
+            resp = await self._client.get("/v1/stats")
+            return self._handle_response(resp)
+        except httpx.RequestError as e:
+            raise MemoraConnectionError(f"Connection failed: {str(e)}") from e
+
     # Aliases
     add = remember
     search = recall
-    delete = forget
 
 
-# Class Aliases for Client Naming Conventions
+# Class Aliases
 MemoraClient = Memora
 AsyncMemoraClient = AsyncMemora

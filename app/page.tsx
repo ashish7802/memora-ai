@@ -164,22 +164,22 @@ export default function MemoraLandingPage() {
                   <span className="w-2 h-2 rounded-full bg-[#588157] animate-ping" />
                   <span className="font-mono text-[11px] text-[#588157] font-bold">MEMORA v1.0</span>
                   <span className="text-[#646877]">|</span>
-                  <span>Self-Learning Autonomous Agent OS</span>
+                  <span>Auditable Memory &amp; Context-Control Layer</span>
                 </div>
 
                 {/* Primary Headline */}
                 <h1 className="text-4xl sm:text-5xl xl:text-6xl font-extrabold tracking-tight text-white leading-[1.12]">
-                  Your AI Workforce.{' '}
+                  Remember the Right Thing.{' '}
                   <span className="bg-gradient-to-r from-[#588157] via-[#2A9D8F] to-[#E76F51] bg-clip-text text-transparent">
-                    Self-Learning.
+                    Prove Why.
                   </span>{' '}
-                  Multi-Agent. Open Source.
+                  Forget on Command.
                 </h1>
 
                 {/* Subtitle */}
                 <p className="text-sm sm:text-base text-[#9DA2B3] leading-relaxed max-w-2xl mx-auto lg:mx-0 font-normal">
-                  The sovereign cognitive infrastructure for autonomous agents. Equip your AI workforce with durable
-                  associative vector memory, DAG task decomposition, experience-driven skill synthesis, local Ollama execution, and real-time omnichannel synchronization.
+                  An auditable memory and context-control layer for AI agents. Tenant-isolated vector storage with
+                  mathematical recall provenance, temporal validity enforcement, conflict detection, and verifiable forget on command.
                 </p>
 
                 {/* Action CTA Buttons */}
@@ -188,7 +188,7 @@ export default function MemoraLandingPage() {
                     onClick={() => openConsoleWithTab('chat')}
                     className="px-6 py-3 bg-gradient-to-r from-[#588157] to-[#3e633d] hover:from-[#4d754c] hover:to-[#355534] text-white text-sm font-semibold rounded-2xl shadow-lg shadow-[#588157]/30 flex items-center gap-2 transition-all cursor-pointer transform hover:-translate-y-0.5"
                   >
-                    <span>Launch Live OS</span>
+                    <span>Launch Console</span>
                     <ArrowRight className="w-4 h-4" />
                   </button>
 
@@ -197,7 +197,7 @@ export default function MemoraLandingPage() {
                     className="px-5 py-3 bg-[#1C1F28] hover:bg-[#252A36] text-[#D0D4E4] text-sm font-medium rounded-2xl border border-[#2E3342] flex items-center gap-2 transition-colors"
                   >
                     <Kanban className="w-4 h-4 text-[#E76F51]" />
-                    <span>Explore Swarm &amp; Graph</span>
+                    <span>Explore Vector Graph</span>
                   </a>
                 </div>
 
@@ -205,7 +205,7 @@ export default function MemoraLandingPage() {
                 <div className="pt-2 flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-3 text-xs text-[#8C90A0]">
                   <div className="flex items-center gap-2 px-3.5 py-2 bg-[#15171D] border border-[#262A35] rounded-xl font-mono text-[11px] text-[#A6ACCD]">
                     <span className="text-[#588157]">$</span>
-                    <span>npm create memora-app@latest</span>
+                    <span>pip install memora-ai</span>
                     <button
                       onClick={copyCliCommand}
                       className="ml-2 p-1 hover:bg-[#252934] rounded text-[#8C90A0] hover:text-white transition-colors cursor-pointer"
@@ -214,7 +214,7 @@ export default function MemoraLandingPage() {
                       {copiedCli ? <Check className="w-3.5 h-3.5 text-[#588157]" /> : <Copy className="w-3.5 h-3.5" />}
                     </button>
                   </div>
-                  <span className="text-[11px] font-mono text-[#666B7C]">Zero sign-up required</span>
+                  <span className="text-[11px] font-mono text-[#666B7C]">Open Source &bull; Self-Hosted</span>
                 </div>
               </div>
 
@@ -230,45 +230,42 @@ export default function MemoraLandingPage() {
             </div>
           </section>
 
-          {/* 3. STATS COUNTER BANNER */}
-          <section id="stats" className="border-b border-[#22252E] bg-[#12141A] py-12 px-4 sm:px-8">
+          {/* 3. ARCHITECTURE SPECS & INTEGRITY BANNER */}
+          <section id="stats" className="border-b border-[#22252E] bg-[#12141A] py-10 px-4 sm:px-8">
             <div className="max-w-7xl mx-auto grid grid-cols-2 md:grid-cols-5 gap-6 text-center">
               <div className="p-4 rounded-2xl bg-[#171922] border border-[#252836]">
                 <div className="text-2xl sm:text-3xl font-extrabold font-mono text-white flex items-center justify-center gap-1">
-                  <span>52.4k</span>
-                  <span className="text-[#588157] text-xl">+</span>
+                  <span>768</span>
                 </div>
-                <div className="text-xs text-[#8C90A0] mt-1 font-medium">GitHub Stars</div>
+                <div className="text-xs text-[#8C90A0] mt-1 font-medium">Vector Dimensions</div>
               </div>
 
               <div className="p-4 rounded-2xl bg-[#171922] border border-[#252836]">
-                <div className="text-2xl sm:text-3xl font-extrabold font-mono text-white flex items-center justify-center gap-1">
-                  <span>210k</span>
-                  <span className="text-[#2A9D8F] text-xl">+</span>
+                <div className="text-2xl sm:text-3xl font-extrabold font-mono text-[#2A9D8F] flex items-center justify-center gap-1">
+                  <span>HNSW</span>
                 </div>
-                <div className="text-xs text-[#8C90A0] mt-1 font-medium">Memories Clustered</div>
+                <div className="text-xs text-[#8C90A0] mt-1 font-medium">Cosine Indexing</div>
               </div>
 
               <div className="p-4 rounded-2xl bg-[#171922] border border-[#252836]">
-                <div className="text-2xl sm:text-3xl font-extrabold font-mono text-white flex items-center justify-center gap-1">
-                  <span>14.8M</span>
-                  <span className="text-[#E76F51] text-xl">+</span>
+                <div className="text-2xl sm:text-3xl font-extrabold font-mono text-[#E76F51] flex items-center justify-center gap-1">
+                  <span>SHA-256</span>
                 </div>
-                <div className="text-xs text-[#8C90A0] mt-1 font-medium">Swarm Tasks Dispatched</div>
+                <div className="text-xs text-[#8C90A0] mt-1 font-medium">Cryptographic Deletion Proof</div>
               </div>
 
               <div className="p-4 rounded-2xl bg-[#171922] border border-[#252836]">
                 <div className="text-2xl sm:text-3xl font-extrabold font-mono text-[#D4A373] flex items-center justify-center gap-1">
-                  <span>&lt;12ms</span>
+                  <span>RLS</span>
                 </div>
-                <div className="text-xs text-[#8C90A0] mt-1 font-medium">p95 Recall Latency</div>
+                <div className="text-xs text-[#8C90A0] mt-1 font-medium">Row-Level Tenant Isolation</div>
               </div>
 
               <div className="p-4 rounded-2xl bg-[#171922] border border-[#252836] col-span-2 md:col-span-1">
                 <div className="text-2xl sm:text-3xl font-extrabold font-mono text-[#588157] flex items-center justify-center gap-1">
-                  <span>100%</span>
+                  <span>Apache 2.0</span>
                 </div>
-                <div className="text-xs text-[#8C90A0] mt-1 font-medium">Air-Gapped Local Mode</div>
+                <div className="text-xs text-[#8C90A0] mt-1 font-medium">Open Source Core</div>
               </div>
             </div>
           </section>
@@ -335,16 +332,16 @@ export default function MemoraLandingPage() {
                   <div className="w-12 h-12 rounded-2xl bg-[#D4A373]/15 border border-[#D4A373]/30 flex items-center justify-center text-[#D4A373] mb-5 group-hover:scale-110 transition-transform">
                     <Sparkles className="w-6 h-6" />
                   </div>
-                  <h3 className="text-lg font-bold text-white mb-2">Autonomous Skill Synthesis</h3>
+                  <h3 className="text-lg font-bold text-white mb-2">Audited Skill Proposals</h3>
                   <p className="text-xs text-[#9DA2B3] leading-relaxed mb-4">
-                    Experience logging pipeline that mines recurring failure patterns, auto-generates TypeScript/Python tool proposals, and hot-reloads them into the runtime registry.
+                    Experience logging pipeline that mines interaction patterns, detects capability gaps, drafts sandboxed tool proposals, and audits them with AST static analysis for human review.
                   </p>
                 </div>
                 <button
                   onClick={() => openConsoleWithTab('learning')}
                   className="text-xs font-mono font-semibold text-[#D4A373] flex items-center gap-1 hover:underline cursor-pointer"
                 >
-                  <span>Inspect Learning Miner</span>
+                  <span>Inspect Skill Proposals</span>
                   <ChevronRight className="w-3.5 h-3.5" />
                 </button>
               </div>

@@ -1,6 +1,6 @@
 {
   "name": "Memora",
-  "description": "Agent Memory & Skills Platform - Foundation & Data Layer with self-improving Experience Logger, Skill Generator, Multi-Agent Swarm with Hermes Kanban Orchestrator, Local-First Ollama Hub, and Telegram/Discord/Slack gateways.",
+  "description": "An auditable memory and context-control layer for AI agents. Remember the right thing. Prove why it was recalled. Forget it on command.",
   "requestFramePermissions": [],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }

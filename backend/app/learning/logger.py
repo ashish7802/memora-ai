@@ -1,19 +1,21 @@
-from typing import Any, Dict, List, Optional
 import uuid
+from typing import Any, Dict, List, Optional
+from sqlalchemy import and_, desc, select
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, desc
 
-from app.learning.models import ExperienceLog, ExperienceLogCreate
+from app.core.database import set_tenant_context
+from app.learning.models import ExperienceLog
 
 
 class ExperienceLogger:
-    """Production logger for capturing real user-agent interactions in PostgreSQL."""
+    """Production logger for capturing real user-agent interactions in PostgreSQL with tenant isolation."""
 
     def __init__(self, db_session: AsyncSession):
         self.db = db_session
 
     async def log_interaction(
         self,
+        tenant_id: uuid.UUID,
         session_id: str,
         user_query: str,
         agent_response: str,
@@ -22,9 +24,9 @@ class ExperienceLogger:
         tool_result: Optional[Dict[str, Any]] = None,
         success: bool = True,
         latency_ms: float = 0.0,
-        tenant_id: Optional[uuid.UUID] = None,
     ) -> ExperienceLog:
         """Persist a live interaction turn into PostgreSQL."""
+        await set_tenant_context(self.db, tenant_id)
         log_entry = ExperienceLog(
             id=uuid.uuid4(),
             tenant_id=tenant_id,
@@ -42,21 +44,33 @@ class ExperienceLogger:
         await self.db.refresh(log_entry)
         return log_entry
 
-    async def get_session_logs(self, session_id: str, limit: int = 100) -> List[ExperienceLog]:
-        """Fetch chronological interaction logs for a given session."""
+    async def get_session_logs(
+        self,
+        tenant_id: uuid.UUID,
+        session_id: str,
+        limit: int = 100,
+    ) -> List[ExperienceLog]:
+        """Fetch chronological interaction logs for a given session within tenant boundary."""
+        await set_tenant_context(self.db, tenant_id)
         stmt = (
             select(ExperienceLog)
-            .where(ExperienceLog.session_id == session_id)
+            .where(and_(ExperienceLog.tenant_id == tenant_id, ExperienceLog.session_id == session_id))
             .order_by(desc(ExperienceLog.created_at))
             .limit(limit)
         )
         result = await self.db.execute(stmt)
         return list(result.scalars().all())
 
-    async def get_recent_logs(self, limit: int = 100) -> List[ExperienceLog]:
-        """Fetch the most recent experience logs across all sessions."""
+    async def get_recent_logs(
+        self,
+        tenant_id: uuid.UUID,
+        limit: int = 100,
+    ) -> List[ExperienceLog]:
+        """Fetch the most recent experience logs within tenant boundary."""
+        await set_tenant_context(self.db, tenant_id)
         stmt = (
             select(ExperienceLog)
+            .where(ExperienceLog.tenant_id == tenant_id)
             .order_by(desc(ExperienceLog.created_at))
             .limit(limit)
         )
