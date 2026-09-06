@@ -26,7 +26,7 @@ describe('TypeScript SDK Test Suite', () => {
 
   it('should remember and recall memory correctly', async () => {
     mockPost.mockImplementation((url: string) => {
-      if (url === '/v1/memory/add') {
+      if (url === '/v1/memory' || url === '/v1/memory/add') {
         return Promise.resolve({
           data: {
             id: '11111111-1111-1111-1111-111111111111',

@@ -23,8 +23,8 @@ def mock_api():
 def test_sync_client_remember_recall_forget(mock_api):
     mem_id = str(uuid.uuid4())
 
-    # Mock /v1/memory/add
-    mock_api.post("/v1/memory/add").mock(
+    # Mock /v1/memory
+    mock_api.post("/v1/memory").mock(
         return_value=httpx.Response(
             201,
             json={
@@ -69,14 +69,18 @@ def test_sync_client_remember_recall_forget(mock_api):
         )
     )
 
-    # Mock /v1/memory/delete
-    mock_api.delete("/v1/memory/delete").mock(
+    # Mock /v1/memory/{id}/forget
+    audit_id = str(uuid.uuid4())
+    mock_api.post(f"/v1/memory/{mem_id}/forget").mock(
         return_value=httpx.Response(
             200,
             json={
-                "status": "success",
-                "deleted_id": mem_id,
-                "message": f"Memory {mem_id} deleted successfully",
+                "status": "forgotten",
+                "memory_id": mem_id,
+                "mode": "soft",
+                "audit_log_id": audit_id,
+                "deletion_proof": "proof_123",
+                "message": f"Memory {mem_id} forgotten successfully",
             },
         )
     )
@@ -100,12 +104,12 @@ def test_sync_client_remember_recall_forget(mock_api):
 
     # 3. Forget
     del_res = client.forget(id=mem_id)
-    assert del_res.status == "success"
-    assert str(del_res.deleted_id) == mem_id
+    assert del_res.status == "forgotten"
+    assert str(del_res.memory_id) == mem_id
 
 
 def test_auth_error_handling(mock_api):
-    mock_api.post("/v1/memory/add").mock(
+    mock_api.post("/v1/memory").mock(
         return_value=httpx.Response(
             401,
             json={
@@ -147,7 +151,7 @@ def test_rate_limit_error_handling(mock_api):
 
 def test_crewai_tool_helper(mock_api):
     mem_id = str(uuid.uuid4())
-    mock_api.post("/v1/memory/add").mock(
+    mock_api.post("/v1/memory").mock(
         return_value=httpx.Response(
             201,
             json={

@@ -88,11 +88,16 @@ def upgrade() -> None:
     op.create_index('ix_audit_logs_tenant_target', 'audit_logs', ['tenant_id', 'target_type', 'target_id'], unique=False)
 
     # 4. Enable Row Level Security (RLS) on tenant-owned tables
-    op.execute("ALTER TABLE memories ENABLE ROW LEVEL SECURITY;")
-    op.execute("ALTER TABLE audit_logs ENABLE ROW LEVEL SECURITY;")
-    op.execute("ALTER TABLE experience_logs ENABLE ROW LEVEL SECURITY;")
-    op.execute("ALTER TABLE pattern_clusters ENABLE ROW LEVEL SECURITY;")
-    op.execute("ALTER TABLE skill_proposals ENABLE ROW LEVEL SECURITY;")
+    op.execute("ALTER TABLE memories ENABLE ROW LEVEL SECURITY")
+    op.execute("ALTER TABLE memories FORCE ROW LEVEL SECURITY")
+    op.execute("ALTER TABLE audit_logs ENABLE ROW LEVEL SECURITY")
+    op.execute("ALTER TABLE audit_logs FORCE ROW LEVEL SECURITY")
+    op.execute("ALTER TABLE experience_logs ENABLE ROW LEVEL SECURITY")
+    op.execute("ALTER TABLE experience_logs FORCE ROW LEVEL SECURITY")
+    op.execute("ALTER TABLE pattern_clusters ENABLE ROW LEVEL SECURITY")
+    op.execute("ALTER TABLE pattern_clusters FORCE ROW LEVEL SECURITY")
+    op.execute("ALTER TABLE skill_proposals ENABLE ROW LEVEL SECURITY")
+    op.execute("ALTER TABLE skill_proposals FORCE ROW LEVEL SECURITY")
 
     # Create tenant isolation RLS policies
     op.execute("""
@@ -140,11 +145,16 @@ def downgrade() -> None:
     op.execute("DROP POLICY IF EXISTS tenant_isolation_memories ON memories;")
 
     # Disable RLS
-    op.execute("ALTER TABLE skill_proposals DISABLE ROW LEVEL SECURITY;")
-    op.execute("ALTER TABLE pattern_clusters DISABLE ROW LEVEL SECURITY;")
-    op.execute("ALTER TABLE experience_logs DISABLE ROW LEVEL SECURITY;")
-    op.execute("ALTER TABLE audit_logs DISABLE ROW LEVEL SECURITY;")
-    op.execute("ALTER TABLE memories DISABLE ROW LEVEL SECURITY;")
+    op.execute("ALTER TABLE skill_proposals NO FORCE ROW LEVEL SECURITY")
+    op.execute("ALTER TABLE skill_proposals DISABLE ROW LEVEL SECURITY")
+    op.execute("ALTER TABLE pattern_clusters NO FORCE ROW LEVEL SECURITY")
+    op.execute("ALTER TABLE pattern_clusters DISABLE ROW LEVEL SECURITY")
+    op.execute("ALTER TABLE experience_logs NO FORCE ROW LEVEL SECURITY")
+    op.execute("ALTER TABLE experience_logs DISABLE ROW LEVEL SECURITY")
+    op.execute("ALTER TABLE audit_logs NO FORCE ROW LEVEL SECURITY")
+    op.execute("ALTER TABLE audit_logs DISABLE ROW LEVEL SECURITY")
+    op.execute("ALTER TABLE memories NO FORCE ROW LEVEL SECURITY")
+    op.execute("ALTER TABLE memories DISABLE ROW LEVEL SECURITY")
 
     # Drop audit_logs table
     op.drop_table('audit_logs')

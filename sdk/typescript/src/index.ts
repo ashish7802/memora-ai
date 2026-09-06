@@ -314,4 +314,71 @@ export class MemoraClient {
   search = this.recall;
 }
 
+export interface MemoryManagerOptions extends MemoraClientOptions {
+  sessionId?: string;
+  cluster?: string;
+  userId?: string;
+  agentId?: string;
+}
+
+export class MemoryManager {
+  private client: MemoraClient;
+  public sessionId?: string;
+  public cluster?: string;
+  public userId?: string;
+  public agentId?: string;
+
+  constructor(options: MemoryManagerOptions = {}) {
+    this.client = new MemoraClient(options);
+    this.sessionId = options.sessionId;
+    this.cluster = options.cluster;
+    this.userId = options.userId;
+    this.agentId = options.agentId;
+  }
+
+  async remember(input: MemoryCreateInput | string, options?: Partial<MemoryCreateInput>): Promise<Memory> {
+    if (typeof input === 'string') {
+      return this.client.remember(input, this.sessionId, {
+        cluster: this.cluster,
+        user_id: this.userId,
+        agent_id: this.agentId,
+        ...options,
+      });
+    }
+    return this.client.remember({
+      session_id: this.sessionId,
+      cluster: this.cluster,
+      user_id: this.userId,
+      agent_id: this.agentId,
+      ...input,
+    });
+  }
+
+  async recall(queryOrInput: string | MemorySearchInput, topK = 5): Promise<Memory[]> {
+    if (typeof queryOrInput === 'string') {
+      return this.client.recall({
+        query: queryOrInput,
+        session_id: this.sessionId,
+        cluster: this.cluster,
+        user_id: this.userId,
+        top_k: topK,
+      });
+    }
+    return this.client.recall({
+      session_id: this.sessionId,
+      cluster: this.cluster,
+      user_id: this.userId,
+      ...queryOrInput,
+    });
+  }
+
+  async forget(id: string, mode: 'soft' | 'hard' = 'soft', reason = 'user_command'): Promise<MemoryForgetResult> {
+    return this.client.forget(id, mode, reason);
+  }
+
+  async delete(id: string): Promise<MemoryDeleteResult> {
+    return this.client.delete(id);
+  }
+}
+
 export default MemoraClient;

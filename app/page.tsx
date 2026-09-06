@@ -263,7 +263,7 @@ export default function MemoraLandingPage() {
 
               <div className="p-4 rounded-2xl bg-[#171922] border border-[#252836] col-span-2 md:col-span-1">
                 <div className="text-2xl sm:text-3xl font-extrabold font-mono text-[#588157] flex items-center justify-center gap-1">
-                  <span>Apache 2.0</span>
+                  <span>MIT</span>
                 </div>
                 <div className="text-xs text-[#8C90A0] mt-1 font-medium">Open Source Core</div>
               </div>

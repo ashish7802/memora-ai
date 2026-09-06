@@ -57,6 +57,16 @@ class APIKeyRequiredException(AppException):
         )
 
 
+class UnauthorizedException(AppException):
+    def __init__(self, message: str = "Unauthorized access."):
+        super().__init__(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            code="UNAUTHORIZED",
+            message=message,
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+
+
 class InvalidAPIKeyException(AppException):
     def __init__(self, message: str = "Invalid API key provided."):
         super().__init__(
