@@ -258,6 +258,15 @@ class MemoryStore {
     return this.memories.map((m) => ({ id: m.id, text: m.text, metadata: m.metadata }));
   }
 
+  deleteMemory(id: string): boolean {
+    const idx = this.memories.findIndex((m) => m.id === id);
+    if (idx !== -1) {
+      this.memories.splice(idx, 1);
+      return true;
+    }
+    return false;
+  }
+
   getStats(): { count: number } {
     return { count: this.memories.length };
   }

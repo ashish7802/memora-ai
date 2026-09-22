@@ -5,7 +5,7 @@ export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
     const message = body.message || '';
-    const sessionId = body.session_id || 'default';
+    const sessionId = body.session_id || body.sessionId || 'default';
 
     if (!message) {
       return NextResponse.json({ error: 'Message cannot be empty' }, { status: 400 });

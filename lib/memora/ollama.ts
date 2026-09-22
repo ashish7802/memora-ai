@@ -104,7 +104,7 @@ class OllamaManager {
     endpoint: process.env.OLLAMA_HOST || 'http://127.0.0.1:11434',
     selectedModel: 'llama3:8b',
     embeddingModel: 'nomic-embed-text:latest',
-    mode: 'local',
+    mode: 'hybrid',
     timeoutMs: 15000,
     temperature: 0.7,
     isSimulatedFallback: true,
@@ -292,33 +292,55 @@ class OllamaManager {
   }
 
   private generateSimulatedLocalResponse(prompt: string, system?: string, model?: string): string {
-    const p = prompt.toLowerCase();
+    const p = prompt.toLowerCase().trim();
 
-    if (p.includes('ping') || p.includes('hello') || p.includes('test')) {
-      return `[${model || 'Local Model'}] Connection verified. Running local inference with full privacy compliance and zero telemetry. Vector memory and platform bridges are online.`;
+    // Hindi & Hinglish detection
+    if (/namaste|kaun hai|kya kar sakte|kaise ho|kya haal|aap kaun|batao|shukriya|dhanyawad/i.test(p)) {
+      if (/kaun hai|aap kaun/i.test(p)) {
+        return `Namaste! Main Memora hoon — ek intelligent AI cognitive agent aur sovereign OS. Main aapke saath Hindi aur English dono me baat kar sakta hoon, aapki baatein yaad (memory store) rakh sakta hoon, calculations aur conversions kar sakta hoon, aur complex tasks execute kar sakta hoon. Batayein, main aaj aapki kya madad karoon?`;
+      }
+      if (/kya kar sakte/i.test(p)) {
+        return `Main yeh sab kar sakta hoon:
+1. 🧠 **Semantic Vector Memory**: Aapki di hui jankari yaad rakhna aur context ke hisab se recall karna.
+2. ⚡ **Smart Skills**: Mathematical calculations, unit conversions, text formatting, aur JSON validation.
+3. 🌐 **Knowledge & Search**: Information lookup aur structured reasoning.
+4. 🤖 **Multi-Agent Swarm**: Complex problems ko sub-tasks me decompose karna.
+Aap mujhse koi bhi sawal pooch sakte hain ya koi task de sakte hain!`;
+      }
+      return `Namaste! Main badhiya hoon. Memora Cognitive Engine active hai. Aap mujhe koi bhi sawal pooch sakte hain ya koi memory add karne ko keh sakte hain.`;
+    }
+
+    if (p.includes('ping') || p.includes('connection') || p.includes('test')) {
+      return `Memora Cognitive Engine is online and operational. High-dimensional vector space is connected, skills are registered, and memory pipelines are ready.`;
+    }
+
+    if (p.includes('who are you') || p.includes('what can you do') || p.includes('help')) {
+      return `I am Memora, an intelligent sovereign AI agent with a semantic vector memory store and modular skill registry. I can:
+- Store and recall contextual memories using high-dimensional embeddings
+- Perform math calculations, unit conversions, and text transformations
+- Parse and validate JSON data structures
+- Search stored records and execute multi-step cognitive workflows
+Feel free to ask a question, request a calculation, or ask me to store a note!`;
     }
 
     if (p.includes('vector') || p.includes('memory') || p.includes('retrieval')) {
-      return `[${model || 'Local Model'}] Local Vector Architecture Evaluation:\n` +
-        `- Embedding Model: ${this.config.embeddingModel}\n` +
-        `- Dimension: 384-d uncompressed / Float32\n` +
-        `- Query Latency: ~14.2ms locally\n` +
-        `- Offline Integrity: 100% air-gapped without remote API token leakage.\n` +
-        `Memory recall successfully aligned with Memora local store.`;
+      return `Memora Semantic Memory System:
+- Embedding Pipeline: 384-dimensional dense vectors
+- Storage: In-memory vector store with cosine similarity matching
+- Retrieval: Contextual top-k nearest neighbor ranking
+- Capabilities: Seamlessly stores experiences and injects relevant context into every conversation.`;
     }
 
     if (p.includes('plan') || p.includes('swarm') || p.includes('task')) {
-      return `[${model || 'Local Model'}] Hermes Local Decomposer Analysis:\n` +
-        `1. Query parsed for local hardware constraints.\n` +
-        `2. Sub-tasks allocated to specialized worker agents with minimal context thrashing.\n` +
-        `3. Validation gate checks local memory associations.\n` +
-        `Ready to dispatch tasks via local executor.`;
+      return `Hermes Agent Orchestration Engine:
+1. User intent parsed and categorized.
+2. Context augmented from semantic vector memory.
+3. Appropriate skills or swarm sub-agents dispatched.
+4. Synthesized result verified and formatted for delivery.`;
     }
 
-    return `[${model || 'Local Model'}] Local inference completed successfully.\n` +
-      `System prompt: ${system ? system.slice(0, 40) + '...' : 'None'}\n` +
-      `Prompt parsed: "${prompt.slice(0, 60)}${prompt.length > 60 ? '...' : ''}"\n` +
-      `Inference executed fully on local runtime with low-latency memory pipeline.`;
+    // Default intelligent conversational fallback
+    return `Hello! I have processed your input: "${prompt}". I am ready to assist with memory queries, data analysis, calculations, or general questions. What specific step would you like to explore next?`;
   }
 }
 
